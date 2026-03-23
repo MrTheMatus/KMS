@@ -1,0 +1,14 @@
+KMS daily report 2026-03-23
+Vault: /Users/adria/Projects/KMS/example-vault
+Profile: local
+
+Counts (markdown files):
+  Inbox: 0
+  Source notes: 1
+  Vault total .md: 3
+
+Recently touched (since ~7d):
+  [inbox]
+    (none)
+  [source_notes]
+    - 20_Source-Notes/src-2026-0001.md

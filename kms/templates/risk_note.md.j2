@@ -1,0 +1,23 @@
+---
+id: {{ id | tojson }}
+type: risk-note
+title: {{ title | tojson }}
+status: draft
+owner: null
+domain: null
+severity: medium
+last_reviewed_at: null
+sensitivity: internal
+related_systems: []
+---
+
+# Ryzyko: {{ title }}
+
+## Opis
+{{ description | default('') }}
+
+## Jak się objawia
+{{ symptoms | default('') }}
+
+## Mitigacja / playbook
+{{ mitigation | default('') }}

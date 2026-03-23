@@ -1,0 +1,31 @@
+---
+id: {{ id | tojson }}
+type: decision-note
+title: {{ title | tojson }}
+status: draft
+owner: null
+reviewer: null
+domain: null
+last_reviewed_at: null
+sensitivity: internal
+decided_at: {{ decided_at | tojson }}
+supersedes: null
+superseded_by: null
+---
+
+# Decyzja: {{ title }}
+
+## Problem
+{{ problem | default('') }}
+
+## Kontekst
+{{ context | default('') }}
+
+## Opcje rozważane
+{{ options | default('') }}
+
+## Decyzja
+{{ decision_body | default('') }}
+
+## Trade-offy i ryzyka
+{{ tradeoffs | default('') }}

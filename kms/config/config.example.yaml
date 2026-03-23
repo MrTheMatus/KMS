@@ -1,0 +1,48 @@
+# Copy to kms/config/config.yaml. Paths are relative to repository root unless absolute.
+
+vault:
+  root: "example-vault"
+  admin_dir: "00_Admin"
+  inbox_dir: "00_Inbox"
+  sources_web: "10_Sources/web"
+  sources_pdf: "10_Sources/pdf"
+  source_notes: "20_Source-Notes"
+  permanent_notes: "30_Permanent-Notes"
+  archive_dir: "99_Archive"
+
+database:
+  path: "kms/data/state.db"
+
+paths:
+  review_queue_file: "00_Admin/review-queue.md"
+  daily_report_dir: "00_Admin/reports"
+
+templates:
+  source_note: "kms/templates/source_note.md.j2"
+  review_queue: "kms/templates/review_queue.md.j2"
+  decision_note: "kms/templates/decision_note.md.j2"
+  risk_note: "kms/templates/risk_note.md.j2"
+
+runtime:
+  profile: "local"
+  llm_triage_provider: "heuristic"
+
+# Głębsze sugestie merge/konflikt/duplikat (osobny skrypt inbox_merge_advisor)
+# --invoke-anythingllm → POST /api/v1/workspace/{slug}/chat (model = ustawienia workspace w UI)
+merge_advisor:
+  prompt_template: "kms/templates/merge_advisor_prompt.md.j2"
+  anythingllm_chat_mode: "chat"
+
+logging:
+  level: "INFO"
+  file: "kms/logs/kms.log"
+
+backup:
+  include_sqlite: true
+  dest: "kms/backups"
+
+anythingllm:
+  enabled: false
+  base_url: "http://localhost:3001"
+  workspace_slug: "my-workspace"
+  api_key_env: "ANYTHINGLLM_API_KEY"

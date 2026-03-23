@@ -1,0 +1,17 @@
+# AnythingLLM — optional local document workspace (see docs/workflow.md).
+# Not part of the Python control plane; mount your vault read-only for ingest workflows.
+services:
+  anything-llm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: kms-anything-llm
+    ports:
+      - "3001:3001"
+    environment:
+      - STORAGE_DIR=/app/server/storage
+    volumes:
+      - anythingllm_storage:/app/server/storage
+      # Example: expose example vault to the host and attach manually in UI
+      - ./example-vault:/vault:ro
+
+volumes:
+  anythingllm_storage:

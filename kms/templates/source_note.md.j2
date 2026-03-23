@@ -1,0 +1,24 @@
+---
+id: {{ id | tojson }}
+type: source-note
+source_type: {{ source_type | tojson }}
+title: {{ title | tojson }}
+source_url: {{ source_url | tojson }}
+file_link: {{ file_link | tojson }}
+captured_at: {{ captured_at | tojson }}
+language: {{ language | tojson }}
+topics: []
+status: inbox
+project: null
+confidence: low
+owner: null
+reviewer: null
+domain: null
+last_reviewed_at: null
+sensitivity: internal
+---
+
+# {{ title }}
+
+## Uwagi
+{{ body | default('') }}

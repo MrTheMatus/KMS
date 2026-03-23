@@ -1,0 +1,10 @@
+# KMS control plane — minimal dependencies
+PyYAML>=6.0.1
+Jinja2>=3.1.0
+pypdf>=5.0.0
+
+# Gateway (optional, Etap 6)
+Flask>=3.0.0
+
+# Dev / tests
+pytest>=8.0.0
