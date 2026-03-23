@@ -2,6 +2,8 @@
 
 **Idea:** Obsidian (treść) + AnythingLLM (retrieval) + SQLite (decyzje i stan) + cienkie skrypty Python. AI i narzędzia **nie** są source of truth dla workflow — patrz [docs/architecture.md](docs/architecture.md).
 
+**Git:** repozytorium z gałęzią `main`, pierwszy commit = starter kit pod **user testy** i CI (`.github/workflows`). Plik `kms/config/config.yaml` jest w `.gitignore` — kopiuj z `kms/config/config.example.yaml`.
+
 ## Szybki start (ok. 15 min)
 
 1. Sklonuj repozytorium i uruchom setup:
