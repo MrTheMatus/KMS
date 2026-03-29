@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import cast
 
 from kms.app.config import abs_path, vault_paths
 from kms.app.db import audit, connect, ensure_schema
-from kms.app.pdf_converter import convert_pdf_to_markdown
+from kms.app.pdf_converter import ConverterPick, convert_pdf_to_markdown
 from kms.app.paths import ensure_dir, project_root
 from kms.scripts._cli import add_dry_run, build_parser, load_setup_logging
 
@@ -22,6 +23,13 @@ def main() -> int:
         type=Path,
         default=None,
         help="Optional single PDF path (absolute or relative to vault root).",
+    )
+    p.add_argument(
+        "--converter-pick",
+        type=str,
+        choices=("chain", "best"),
+        default="chain",
+        help="chain: first success; best: pick highest transcript score (chat PDFs).",
     )
     args = p.parse_args()
     cfg = load_setup_logging(args)
@@ -48,7 +56,10 @@ def main() -> int:
     for pdf in pdf_files:
         out_md = out_dir / f"{pdf.stem}.md"
         try:
-            result = convert_pdf_to_markdown(pdf)
+            result = convert_pdf_to_markdown(
+                pdf,
+                pick=cast(ConverterPick, args.converter_pick),
+            )
             if args.dry_run:
                 _LOG.info(
                     "dry-run: would convert %s -> %s (converter=%s warnings=%s)",

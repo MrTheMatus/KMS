@@ -88,9 +88,9 @@ def render_review_queue(
 ) -> str:
     """blocks: proposal dicts with keys proposal_id, item_id, path, kind, suggested_action, suggested_target, reason, decision, reviewer, override_target, body_md"""
     lines: list[str] = [f"# {title}", ""]
-    for b in blocks:
+    for idx, b in enumerate(blocks):
         lines.append(BEGIN)
-        lines.append("```yaml")
+        lines.append("```kms-review")
         lines.append(
             yaml.dump(
                 {
@@ -111,4 +111,8 @@ def render_review_queue(
         lines.append("")
         lines.append(END)
         lines.append("")
+        # Thick separator between proposals
+        if idx < len(blocks) - 1:
+            lines.append("***")
+            lines.append("")
     return "\n".join(lines).rstrip() + "\n"

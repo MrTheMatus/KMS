@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.conftest import copy_kms_for_tests
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -69,7 +71,7 @@ def applied_repo(tmp_path: Path) -> tuple[Path, str, int]:
 
     Returns (cwd, cfg_path, proposal_id).
     """
-    shutil.copytree(ROOT / "kms", tmp_path / "kms")
+    copy_kms_for_tests(tmp_path / "kms")
     vault = tmp_path / "vault"
     vault.mkdir(exist_ok=True)
     for d in ["00_Inbox", "10_Sources/web", "10_Sources/pdf", "00_Admin/reports",

@@ -35,7 +35,7 @@ def main() -> int:
     p.add_argument(
         "--source-type",
         default="web",
-        choices=["web", "pdf", "other"],
+        choices=["web", "pdf", "conversation", "other"],
         help="source_type frontmatter",
     )
     p.add_argument("--source-url", default="", help="URL if web capture")

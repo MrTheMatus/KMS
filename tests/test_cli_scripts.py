@@ -12,6 +12,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.conftest import copy_kms_for_tests
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -55,7 +57,7 @@ def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 
 @pytest.fixture
 def mini_repo(tmp_path: Path) -> Path:
-    shutil.copytree(ROOT / "kms", tmp_path / "kms")
+    copy_kms_for_tests(tmp_path / "kms")
     vault = tmp_path / "vault"
     vault.mkdir()
     for d in ["00_Inbox", "10_Sources/web", "10_Sources/pdf", "00_Admin/reports",
@@ -166,3 +168,66 @@ class TestGenerateSourceNote:
         row = conn.execute("SELECT action FROM audit_log WHERE action = 'generate_source_note'").fetchone()
         conn.close()
         assert row is not None
+
+
+# --------------- convert_conversation ---------------
+
+_SAMPLE_CONVERSATION = """\
+Alice: Próbowałeś kiedyś debugować race condition?
+Bob: Tak, ostatnio miałem taki case — dwa joby co 5 minut, nakładające się transakcje.
+Alice: I jak znalazłeś przyczynę?
+Bob: Śledzenie po thread ID w logach, grep po PID. Klasyczne metody.
+Alice: No właśnie, logging strategy jest kluczowy.
+"""
+
+
+class TestConvertConversation:
+    def test_dry_run_does_not_create_file(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        conv_file = mini_repo / "sample_conv.txt"
+        conv_file.write_text(_SAMPLE_CONVERSATION, encoding="utf-8")
+        r = _run([
+            sys.executable, "-m", "kms.scripts.convert_conversation",
+            "--input", str(conv_file), "--title", "Dry Run Conv", "--dry-run", "--config", cfg,
+        ], mini_repo)
+        assert r.returncode == 0
+        assert "dry-run" in r.stdout.lower()
+        notes = list((mini_repo / "vault" / "00_Inbox").glob("conv-*.md"))
+        assert len(notes) == 0
+
+    def test_creates_inbox_note(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        conv_file = mini_repo / "sample_conv.txt"
+        conv_file.write_text(_SAMPLE_CONVERSATION, encoding="utf-8")
+        r = _run([
+            sys.executable, "-m", "kms.scripts.convert_conversation",
+            "--input", str(conv_file), "--title", "Debug Chat", "--config", cfg,
+        ], mini_repo)
+        assert r.returncode == 0
+        notes = list((mini_repo / "vault" / "00_Inbox").glob("conv-*.md"))
+        assert len(notes) == 1
+        content = notes[0].read_text(encoding="utf-8")
+        assert "source_type" in content
+        assert "conversation" in content
+        assert "Debug Chat" in content
+
+    def test_creates_audit_entry(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        conv_file = mini_repo / "sample_conv.txt"
+        conv_file.write_text(_SAMPLE_CONVERSATION, encoding="utf-8")
+        _run([
+            sys.executable, "-m", "kms.scripts.convert_conversation",
+            "--input", str(conv_file), "--config", cfg,
+        ], mini_repo)
+        conn = sqlite3.connect(mini_repo / "kms" / "data" / "state.db")
+        row = conn.execute("SELECT action FROM audit_log WHERE action = 'convert_conversation'").fetchone()
+        conn.close()
+        assert row is not None
+
+    def test_missing_input_returns_1(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        r = _run([
+            sys.executable, "-m", "kms.scripts.convert_conversation",
+            "--input", str(mini_repo / "nonexistent.txt"), "--config", cfg,
+        ], mini_repo)
+        assert r.returncode == 1

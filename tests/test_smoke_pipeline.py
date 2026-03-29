@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.conftest import copy_kms_for_tests
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -55,16 +57,21 @@ def _run(cmd: list[str], cwd: Path, env: dict | None = None) -> subprocess.Compl
 @pytest.fixture
 def mini_repo(tmp_path: Path) -> Path:
     """Mirror kms/ and example-vault under tmp."""
-    shutil.copytree(ROOT / "kms", tmp_path / "kms")
+    copy_kms_for_tests(tmp_path / "kms")
     shutil.copytree(ROOT / "example-vault", tmp_path / "vault")
-    (tmp_path / "vault" / "00_Inbox").mkdir(parents=True, exist_ok=True)
     (tmp_path / "vault" / "10_Sources" / "web").mkdir(parents=True, exist_ok=True)
     (tmp_path / "vault" / "10_Sources" / "pdf").mkdir(parents=True, exist_ok=True)
     (tmp_path / "vault" / "00_Admin" / "reports").mkdir(parents=True, exist_ok=True)
     db = tmp_path / "kms" / "data" / "state.db"
     db.parent.mkdir(parents=True, exist_ok=True)
     _write_config(tmp_path, tmp_path / "vault", db)
-    (tmp_path / "vault" / "00_Inbox" / "note.txt").write_text("hello kms", encoding="utf-8")
+    inbox = tmp_path / "vault" / "00_Inbox"
+    for child in list(inbox.iterdir()):
+        if child.is_dir():
+            shutil.rmtree(child)
+        elif child.is_file():
+            child.unlink()
+    (inbox / "note.txt").write_text("hello kms", encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text((ROOT / "pyproject.toml").read_text(), encoding="utf-8")
     return tmp_path
 

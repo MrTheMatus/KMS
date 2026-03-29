@@ -61,4 +61,13 @@ def setup_logging(cfg: dict[str, Any], verbose: bool) -> None:
 def load_setup_logging(args: argparse.Namespace) -> dict[str, Any]:
     cfg = load_config(args.config)
     setup_logging(cfg, args.verbose)
+
+    # Validate config — print warnings, abort on errors
+    from kms.app.config_validator import print_validation, validate_config
+
+    issues = validate_config(cfg, project_root())
+    has_errors = print_validation(issues)
+    if has_errors:
+        raise SystemExit("Config validation failed. Fix errors above and retry.")
+
     return cfg

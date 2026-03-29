@@ -105,13 +105,16 @@ Gotowy **System Prompt**, temperatura, historia czatu i tekst odmowy „query mo
 | `inbox_merge_advisor` | Głębsze sugestie vs warstwa kanoniczna: duplikat / konflikt / merge / prompt → **AnythingLLM API** (`--proposal-id`, `--json`, `--out`, opcjonalnie `--invoke-anythingllm`) | tak (bez audytu przy dry-run) |
 | `sync_to_anythingllm` | Upload + `update-embeddings` dla niesyncowanych artefaktów | tak |
 | `convert_pdf_to_markdown` | PDF → MD (inbox lub `--input`) | tak |
+| `convert_conversation` | Surowa rozmowa/czat → source-note w `00_Inbox/` z `source_type: conversation` (`--input` **lub** `--batch-dir`, `--title` tylko przy pojedynczym pliku, opcjonalnie `--invoke-anythingllm`) | tak |
 | `ollama_pull_models` | Pomocniczo: `ollama pull` (osobny parser; `--models` lub `OLLAMA_MODELS`) | — |
 
-**Powłoki:**
+**Powłoki (repozytorium):**
 
 | Skrypt | Opis |
 |--------|------|
 | `scripts/setup.sh` | Setup venv / zależności |
+| `scripts/generate_knowledge_seed.py` | Notatki `type: permanent-note` z `status: inbox` → `00_Inbox/seed/**` (`python scripts/generate_knowledge_seed.py`) |
+| `scripts/ingest_conversations.py` | Folder `*.pdf` (eksporty czatów) → Markdown w `00_Inbox/conversations/` (`--source-dir`, `--target-dir`, `--max-size-mb` [domyślnie **bez limitu**], `--dry-run`, opcjonalnie `--config` dla audytu) |
 | `kms/scripts/backup.sh` | Backup vault (+ SQLite wg configu) |
 
 **Gateway (HTTP, nie `kms.scripts`):**
@@ -191,7 +194,40 @@ python -m kms.scripts.inbox_merge_advisor --invoke-anythingllm
 
 Endpoint: `POST /api/v1/workspace/{slug}/chat` — te same `anythingllm.*` co przy sync. `merge_advisor.anythingllm_chat_mode`: `chat` \| `query` \| `automatic`.
 
-Korpus demo (C++): `30_Permanent-Notes/cpp-corpus/` — `python scripts/generate_cpp_corpus.py`. Zob. [kms-principles.md](kms-principles.md) §9.
+Notatki seed (HITL): `00_Inbox/seed/**` — ten sam układ tematyczny co wcześniej (`principles`, `cpp/*`, `system-design/*`, …, `domain/govtech/*`); `python scripts/generate_knowledge_seed.py`, potem `scan_inbox` → `review-queue` → `apply`. Korpus w `30_Permanent-Notes/` możesz utrzymywać osobno po apply. Zob. [kms-principles.md](kms-principles.md) §9.
+
+---
+
+## Konwerter rozmów
+
+Surowe rozmowy (WhatsApp, Discord, czat, transkrypcja) → sformatowana source-note w `00_Inbox/`.
+
+```bash
+python -m kms.scripts.convert_conversation --input rozmowa.txt --title "Debug z Bobem"
+python -m kms.scripts.convert_conversation --batch-dir ./folder_z_txt/   # tytuł z nazwy pliku
+python -m kms.scripts.convert_conversation --input rozmowa.txt --dry-run
+export ANYTHINGLLM_API_KEY="..."
+python -m kms.scripts.convert_conversation --input rozmowa.txt --invoke-anythingllm
+```
+
+Z flagą `--invoke-anythingllm` prompt jest wysyłany do workspace (model z UI AnythingLLM) i odpowiedź staje się treścią notatki. Bez niej — prompt trafia bezpośrednio do notatki (do ręcznego wklejenia do LLM).
+
+**PDF → MD w inbox (wiele plików):** domyślnie `pdf_converter` bierze **pierwszy** udany backend w kolejności **markitdown** → docling → pymupdf4llm → pypdf. Dla eksportów czatu (ChatGPT itd.) często lepszy jest tryb **`--converter-pick best`**: uruchamiane są wszystkie dostępne backendy i wybierany jest wynik z najwyższą heurystyką „transkryptu”. Zależność **pymupdf4llm** jest w `requirements.txt`. Batch:
+
+```bash
+python scripts/ingest_conversations.py --source-dir conversations/ \\
+  --target-dir example-vault/00_Inbox/conversations/ \\
+  --converter-pick best
+# opcjonalnie limit: --max-size-mb 200
+# opcjonalnie: --config kms/config/config.yaml  # wpis audit_log
+```
+
+Pojedynczy PDF z vaultu: `python -m kms.scripts.convert_pdf_to_markdown --converter-pick best --input ...`
+
+Domyślnie skrypt przetwarza wszystkie rozmiary PDF (`--max-size-mb <= 0`). Wyjście JSON: `ok` / `skipped` / `failed` + `topics_found` + `new_topics`.
+Dodatkowo zapisuje raport `00_Inbox/conversations/_topics_discovered.md` z licznikami tematów (np. Java/TypeScript/Angular), żeby łatwo utworzyć kolejne notatki permanent.
+
+Notatka z `source_type: conversation` przechodzi standardowy pipeline: `scan_inbox → make_review_queue → apply`.
 
 ---
 

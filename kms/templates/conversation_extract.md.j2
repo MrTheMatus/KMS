@@ -1,0 +1,47 @@
+# KMS — ekstrakcja wiedzy z rozmowy
+
+Jesteś asystentem **local-first KMS**. Dostajesz **surową rozmowę** (czat, WhatsApp, Discord, transkrypcja) i musisz wyodrębnić z niej **konkretną wiedzę techniczną** gotową do umieszczenia jako source-note w inboxie.
+
+{% if title %}
+## Tytuł rozmowy
+
+{{ title }}
+{% endif %}
+
+## Surowa rozmowa
+
+```
+{{ conversation_text[:20000] }}
+```
+
+## Twoje zadanie (odpowiedź po polsku, markdown)
+
+Wyodrębnij **konkretną wiedzę techniczną** — fakty, heurystyki, spostrzeżenia, porady, gotchas.
+Ignoruj small talk, emotikony i fragmenty bez wartości technicznej.
+
+### Wymagany format odpowiedzi:
+
+#### 1. Streszczenie
+2–4 zdania: kto rozmawia (jeśli widać), o czym, jaki jest kontekst techniczny.
+
+#### 2. Kluczowe spostrzeżenia
+Dla każdego punktu:
+- **Spostrzeżenie** — co odkryto / ustalono
+- **Kto** — autor (jeśli widoczny)
+- **Kontekst** — w jakim projekcie / technologii
+- **Poziom pewności** — pewne / prawdopodobne / anegdotyczne
+
+#### 3. Najciekawsze cytaty
+Dosłowne cytaty z rozmowy, które mają wartość edukacyjną (max 5).
+
+#### 4. Sugerowane tematy (topics)
+Lista tagów pasujących do KMS, np.: `cpp`, `debugging`, `concurrency`, `java`, `architecture`.
+
+#### 5. Sugerowane ścieżki permanent-notes
+Zaproponuj 1–3 ścieżki istniejących lub nowych permanent-notes, do których ta wiedza może trafić.
+Format: `30_Permanent-Notes/<domena>/<slug>.md`
+
+#### 6. Czego można się nauczyć
+Krótki akapit: jakie lekcje płyną z tej rozmowy i kto mógłby czego nauczyć się od kogo.
+
+Bądź **konkretny** — podawaj ścieżki, nazwy technologii, numery wersji. Nie generalizuj.
