@@ -22,3 +22,7 @@ kms/config/config.yaml
 
 # OS
 .DS_Store
+
+# Local vault and exported chats (not versioned)
+example-vault/
+conversations/
