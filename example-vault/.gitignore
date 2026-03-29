@@ -1,0 +1,44 @@
+# Lokalna zawartość vaultu (baza wiedzy, generaty pipeline) — nie commituj.
+# W repozytorium zostaje: .obsidian (plugin + config), szkielet katalogów (.gitkeep), README/docs.
+
+# --- Pipeline folders: tylko placeholdery ---
+# (Git: po wykluczeniu ** trzeba !katalog/ zanim !plik zadziała)
+00_Inbox/**
+!00_Inbox/
+!00_Inbox/.gitkeep
+
+00_Admin/**
+!00_Admin/
+!00_Admin/reports/
+!00_Admin/reports/.gitkeep
+
+10_Sources/**
+!10_Sources/
+!10_Sources/pdf/
+!10_Sources/web/
+!10_Sources/pdf/.gitkeep
+!10_Sources/web/.gitkeep
+
+20_Source-Notes/**
+!20_Source-Notes/
+!20_Source-Notes/.gitkeep
+
+30_Permanent-Notes/**
+!30_Permanent-Notes/
+!30_Permanent-Notes/.gitkeep
+
+40_Projects/**
+!40_Projects/
+!40_Projects/.gitkeep
+
+90_Attachments/**
+!90_Attachments/
+!90_Attachments/.gitkeep
+
+99_Archive/**
+!99_Archive/
+!99_Archive/.gitkeep
+
+# --- Obsidian: układ okien (maszyna / użytkownik) ---
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json

@@ -23,6 +23,5 @@ kms/config/config.yaml
 # OS
 .DS_Store
 
-# Local vault and exported chats (not versioned)
-example-vault/
+# Exported chats at repo root (not versioned). Vault: see example-vault/.gitignore
 conversations/
