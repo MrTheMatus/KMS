@@ -5,5 +5,5 @@
   "minAppVersion": "1.0.0",
   "description": "Replaces YAML editing in review-queue.md with interactive checkboxes for approve/reject/postpone decisions.",
   "author": "KMS",
-  "isDesktopOnly": false
+  "isDesktopOnly": true
 }

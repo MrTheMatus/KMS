@@ -33,6 +33,36 @@ merge_advisor:
   prompt_template: "kms/templates/merge_advisor_prompt.md.j2"
   anythingllm_chat_mode: "chat"
 
+# ── LLM provider ──────────────────────────────────────────────
+# Unified config — works with any OpenAI-compatible API.
+# The client calls /v1/chat/completions and /v1/models.
+#
+# Ollama (local, default):
+#   base_url: "http://localhost:11434"
+#   model: "qwen2.5:14b"
+#   api_key_env: ""
+#
+# OpenAI:
+#   base_url: "https://api.openai.com"
+#   model: "gpt-4o-mini"
+#   api_key_env: "OPENAI_API_KEY"
+#
+# Groq (fast cloud):
+#   base_url: "https://api.groq.com/openai"
+#   model: "llama-3.1-70b-versatile"
+#   api_key_env: "GROQ_API_KEY"
+#
+# Together:
+#   base_url: "https://api.together.xyz"
+#   model: "meta-llama/Llama-3-70b-chat-hf"
+#   api_key_env: "TOGETHER_API_KEY"
+#
+llm:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:14b"
+  api_key_env: ""
+  timeout: 120
+
 logging:
   level: "INFO"
   file: "kms/logs/kms.log"

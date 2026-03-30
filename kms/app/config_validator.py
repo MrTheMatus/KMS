@@ -58,28 +58,55 @@ def validate_config(cfg: dict[str, Any], project_root: Path) -> list[ConfigError
                 f"mkdir -p \"{db_dir}\"",
             ))
 
-    # 3. Ollama availability (warning only)
-    ollama_cfg = cfg.get("ollama", {})
-    ollama_url = str(ollama_cfg.get("base_url", "http://localhost:11434"))
-    ollama_model = str(ollama_cfg.get("model", "qwen2.5:14b"))
+    # 3. LLM provider availability (warning only)
+    # Supports new llm: section and legacy ollama: fallback
+    llm_cfg = cfg.get("llm") or {}
+    llm_url = str(llm_cfg.get("base_url", "")).rstrip("/")
+    llm_model = str(llm_cfg.get("model", ""))
+    llm_key_env = str(llm_cfg.get("api_key_env", "") or "")
+
+    # Fallback to legacy ollama: if llm: not configured
+    if not llm_url:
+        ollama_cfg = cfg.get("ollama", {})
+        llm_url = str(ollama_cfg.get("base_url", "http://localhost:11434")).rstrip("/")
+        llm_model = str(ollama_cfg.get("model", "qwen2.5:14b"))
+
+    # Check API key for cloud providers
+    if llm_key_env and not os.getenv(llm_key_env, "").strip():
+        issues.append(ConfigError(
+            "warning",
+            f"LLM API key not set (env: {llm_key_env})",
+            f"export {llm_key_env}=your-api-key",
+        ))
+
+    # Check connectivity via /v1/models (works for Ollama and OpenAI-compat)
     try:
-        req = request.Request(f"{ollama_url}/api/tags", method="GET")
+        import json
+
+        check_url = f"{llm_url}/v1/models"
+        headers = {}
+        if llm_key_env:
+            key = os.getenv(llm_key_env, "")
+            if key:
+                headers["Authorization"] = f"Bearer {key}"
+        req = request.Request(check_url, method="GET", headers=headers)
         with request.urlopen(req, timeout=3) as resp:  # noqa: S310
-            import json
             data = json.loads(resp.read().decode("utf-8"))
-            models = [m.get("name", "") for m in data.get("models", [])]
-            model_base = ollama_model.split(":")[0]
-            if not any(model_base in m for m in models):
-                issues.append(ConfigError(
-                    "warning",
-                    f"Ollama model '{ollama_model}' not found (available: {', '.join(models[:5]) or 'none'})",
-                    f"ollama pull {ollama_model}",
-                ))
+            models = [m.get("id", "") for m in data.get("data", [])]
+            if llm_model:
+                model_base = llm_model.split(":")[0]
+                if not any(model_base in m for m in models):
+                    issues.append(ConfigError(
+                        "warning",
+                        f"LLM model '{llm_model}' not found (available: {', '.join(models[:5]) or 'none'})",
+                        f"ollama pull {llm_model}" if "localhost" in llm_url else f"Check model name: {llm_model}",
+                    ))
     except Exception:  # noqa: BLE001
         issues.append(ConfigError(
             "warning",
-            f"Ollama not reachable at {ollama_url}",
-            "brew services start ollama",
+            f"LLM not reachable at {llm_url}",
+            "brew services start ollama" if "localhost" in llm_url or "11434" in llm_url
+            else f"Check LLM provider at {llm_url}",
         ))
 
     # 4. AnythingLLM (warning only if enabled)
