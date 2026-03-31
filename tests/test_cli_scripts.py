@@ -170,6 +170,57 @@ class TestGenerateSourceNote:
         assert row is not None
 
 
+# --------------- generate_dashboard ---------------
+
+class TestGenerateDashboard:
+    def test_creates_dashboard_file(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        r = _run([sys.executable, "-m", "kms.scripts.generate_dashboard", "--config", cfg], mini_repo)
+        assert r.returncode == 0, r.stderr + r.stdout
+        dashboard = mini_repo / "vault" / "00_Admin" / "dashboard.md"
+        assert dashboard.is_file()
+        content = dashboard.read_text(encoding="utf-8")
+        assert "Dashboard" in content
+        assert "pipeline" in content.lower() or "metryka" in content.lower()
+
+    def test_dashboard_shows_inbox_count(self, mini_repo: Path) -> None:
+        (mini_repo / "vault" / "00_Inbox" / "file1.md").write_text("test", encoding="utf-8")
+        (mini_repo / "vault" / "00_Inbox" / "file2.pdf").write_bytes(b"%PDF-1.4 test")
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        r = _run([sys.executable, "-m", "kms.scripts.generate_dashboard", "--config", cfg], mini_repo)
+        assert r.returncode == 0, r.stderr + r.stdout
+        content = (mini_repo / "vault" / "00_Admin" / "dashboard.md").read_text(encoding="utf-8")
+        assert "2" in content
+
+
+# --------------- status ---------------
+
+class TestStatus:
+    def test_empty_db_returns_0(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        r = _run([sys.executable, "-m", "kms.scripts.status", "--config", cfg], mini_repo)
+        assert r.returncode == 0
+
+    def test_json_output_parseable(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        py = sys.executable
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], mini_repo)
+        (mini_repo / "vault" / "00_Inbox" / "test.txt").write_text("content", encoding="utf-8")
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], mini_repo)
+        _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], mini_repo)
+        r = _run([py, "-m", "kms.scripts.status", "--json", "--config", cfg], mini_repo)
+        assert r.returncode == 0
+        import json
+        for line in r.stdout.strip().splitlines():
+            data = json.loads(line)
+            assert "proposal_id" in data
+
+    def test_filter_by_proposal_id(self, mini_repo: Path) -> None:
+        cfg = str(mini_repo / "kms" / "config" / "config.yaml")
+        r = _run([sys.executable, "-m", "kms.scripts.status", "--proposal-id", "999", "--config", cfg], mini_repo)
+        assert r.returncode == 1
+
+
 # --------------- convert_conversation ---------------
 
 _SAMPLE_CONVERSATION = """\

@@ -46,8 +46,7 @@ Na bieżącym etapie **świadomie nie budujemy**:
 | Autonomiczny agent mutujący wiedzę bez zatwierdzenia | Decyzje wymagają człowieka |
 | Ciężki orchestrator (np. Airflow) | Automatyka: cron / systemd |
 | Publiczne wystawianie całego stacku do internetu | Później ewentualnie tylko lekki gateway przez VPN |
-| Rozbudowany panel administracyjny na MVP | Review przez markdown (`00_Admin/review-queue.md`) |
-| Plugin do Obsidiana | Osobny projekt |
+| Rozbudowany panel administracyjny poza Obsidian | Review w markdown + plugin Obsidian (patrz §3) |
 | Własny OCR stack od zera | — |
 | Automatyczny merge notatek | — (sugestie merge w ``inbox_merge_advisor`` to tylko tekst dla reviewera + opcjonalny chat w AnythingLLM; **brak** mutacji vaultu bez `apply_decisions`) |
 
@@ -62,7 +61,8 @@ Na bieżącym etapie **świadomie nie budujemy**:
 | **Content plane** | Ollama lub provider chmurowy | LLM / embeddingi (konfiguracja użytkownika) |
 | **Decision plane** | SQLite (`state.db`) | Itemy, propozycje, decyzje, artefakty, audyt |
 | **Decision plane** | Skrypty Python (`kms`) | Skan inboxu, kolejka review, apply, raporty |
-| **Review UI v1** | `00_Admin/review-queue.md` | Jedyny interfejs decyzji na MVP |
+| **Review UI** | `00_Admin/review-queue.md` | Źródło decyzji (format YAML w markdown) |
+| **Obsidian plugin** | `kms-review` | Interaktywny interfejs: review, search, dashboard, revert, bulk ops — wywołuje skrypty Python |
 | **Execution host** | Mac mini (docelowo) | Mutacje plików, apply, backup |
 | **Future** | Thin client + gateway | Zdalne approve/reject/postpone przez VPN (później) |
 
@@ -286,12 +286,13 @@ Dla **backupu**: vault + SQLite; non-interactive; log wyniku lub błędu.
 | 4 | Demo / narracja | Przykładowe pytania, scenariusz prezentacji | **Done** |
 | 5 | Starter kit | README, docker-compose, Dockerfile, setup, profile local/cloud | **Done** |
 | 6 | Gateway | Lekki interfejs decyzji + VPN (patrz `docs/gateway.md`) | **Done** (ADR-005 superseded) |
-| 7 | Ergonomia v2 | Opcjonalnie TUI / mały panel | Przyszły |
-| 8 | Knowledge continuity | Rozszerzalne typy notatek, ownership — patrz sekcja 13 | Fundament ready; pełna realizacja przyszła |
+| 7 | Plugin Obsidian | Plugin kms-review: review UI, search, dashboard, bulk ops, revert | **Done** |
+| 8 | Product polish | i18n, settings, onboarding, dark mode, accessibility | W trakcie |
+| 9 | Knowledge continuity | Rozszerzalne typy notatek, ownership — patrz sekcja 13 | Fundament ready; pełna realizacja przyszła |
 
-**Kolejność:** manualny pipeline → control plane → stabilizacja → packaging → gateway → continuity layer.
+**Kolejność:** manualny pipeline → control plane → stabilizacja → packaging → gateway → plugin → polish → continuity layer.
 
-**Stan na 2026-03-24:** Etapy 0–6 zrealizowane. Etap 7 (TUI) i pełny Etap 8 (continuity beyond templates) świadomie odłożone.
+**Stan na 2026-03-30:** Etapy 0–7 zrealizowane. Etap 8 (product polish) w trakcie. Etap 9 (continuity beyond templates) świadomie odłożony.
 
 ---
 

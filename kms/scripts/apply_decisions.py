@@ -142,6 +142,48 @@ def _create_source_note_for_file(
     return out
 
 
+def _archive_rejected(conn, vp: dict[str, Path], *, dry_run: bool) -> int:
+    """Move rejected inbox files to 99_Archive/rejected/YYYY-MM/."""
+    rows = fetch_all_dicts(
+        conn,
+        """SELECT p.id AS proposal_id, p.item_id, i.path AS item_path
+           FROM proposals p
+           JOIN items i ON i.id = p.item_id
+           JOIN decisions d ON d.proposal_id = p.id
+           WHERE d.decision = 'reject'
+             AND i.status NOT IN ('archived', 'applied', 'failed')""",
+    )
+    vault = vp["root"]
+    archive = vp["archive"]
+    archived = 0
+    for row in rows:
+        src = vault / row["item_path"]
+        if not src.is_file():
+            continue
+        month_dir = archive / "rejected" / date.today().strftime("%Y-%m")
+        dest = month_dir / src.name
+        if dry_run:
+            _LOG.info("dry-run: would archive rejected %s -> %s", src, dest)
+            archived += 1
+            continue
+        month_dir.mkdir(parents=True, exist_ok=True)
+        if dest.exists():
+            dest = month_dir / f"{src.stem}_{row['proposal_id']}{src.suffix}"
+        shutil.move(str(src), str(dest))
+        dest_rel = dest.relative_to(vault).as_posix()
+        now = utc_now_iso()
+        conn.execute(
+            "UPDATE items SET path = ?, status = 'archived', updated_at = ? WHERE id = ?",
+            (dest_rel, now, row["item_id"]),
+        )
+        audit(conn, "apply_decisions", "archive_rejected", str(row["proposal_id"]),
+              {"from": row["item_path"], "to": dest_rel})
+        conn.commit()
+        archived += 1
+        _LOG.info("Archived rejected proposal %s: %s -> %s", row["proposal_id"], row["item_path"], dest_rel)
+    return archived
+
+
 def main() -> int:
     p = build_parser(
         "Parse review-queue.md, upsert decisions, apply approved proposals (idempotent)."
@@ -208,6 +250,8 @@ def main() -> int:
         )
         _audit_suggestion_quality(conn, b.proposal_id, b.decision)
     conn.commit()
+
+    _archive_rejected(conn, vp, dry_run=args.dry_run)
 
     if args.dry_run:
         pending = fetch_all_dicts(

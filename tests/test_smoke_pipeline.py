@@ -177,3 +177,30 @@ def test_apply_target_collision_marks_failed(mini_repo: Path) -> None:
     conn.close()
     assert status is not None and status[0] == "failed"
     assert audit_err is not None and "note.txt" in (audit_err[0] or "")
+
+
+def test_reject_archives_file(mini_repo: Path) -> None:
+    """Rejected proposals move file to 99_Archive/rejected/YYYY-MM/."""
+    cwd = mini_repo
+    py = sys.executable
+    cfg = str(cwd / "kms" / "config" / "config.yaml")
+    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd).returncode == 0
+
+    rq = cwd / "vault" / "00_Admin" / "review-queue.md"
+    text = rq.read_text(encoding="utf-8")
+    rq.write_text(text.replace("decision: pending", "decision: reject"), encoding="utf-8")
+
+    r = _run([py, "-m", "kms.scripts.apply_decisions", "--config", cfg], cwd)
+    assert r.returncode == 0, r.stderr + r.stdout
+
+    assert not (cwd / "vault" / "00_Inbox" / "note.txt").is_file()
+    archive = cwd / "vault" / "99_Archive" / "rejected"
+    assert archive.is_dir()
+    archived_files = list(archive.rglob("note.txt"))
+    assert len(archived_files) == 1
+
+    conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
+    status = conn.execute("SELECT status FROM items WHERE path LIKE ?", ("%note.txt%",)).fetchone()
+    conn.close()
+    assert status is not None and status[0] == "archived"

@@ -130,7 +130,32 @@ def validate_config(cfg: dict[str, Any], project_root: Path) -> list[ConfigError
                 "docker compose up -d",
             ))
 
-    # 5. Review queue file path
+    # 5. Archive directory
+    if vault_root and vault_root.is_dir():
+        archive_dir_name = cfg.get("vault", {}).get("archive_dir", "")
+        if archive_dir_name:
+            archive_path = vault_root / archive_dir_name
+            if not archive_path.is_dir():
+                issues.append(ConfigError(
+                    "warning",
+                    f"Archive directory missing: {archive_path}",
+                    f"mkdir -p \"{archive_path}\"",
+                ))
+
+    # 6. Template files exist
+    templates = cfg.get("templates", {})
+    for tpl_key, tpl_rel in templates.items():
+        if not tpl_rel:
+            continue
+        tpl_path = project_root / tpl_rel
+        if not tpl_path.is_file():
+            issues.append(ConfigError(
+                "warning",
+                f"Template file missing: {tpl_path} (templates.{tpl_key})",
+                f"Check path in config.yaml: templates.{tpl_key}",
+            ))
+
+    # 7. Review queue file path
     rq_file = cfg.get("paths", {}).get("review_queue_file", "")
     if not rq_file:
         issues.append(ConfigError(

@@ -6,14 +6,16 @@ Ten dokument zamraza baseline przed uruchomieniem testow na:
 
 ## 1) Baseline freeze checklist (Dzien 0)
 
-- [ ] Potwierdzony config profilu (`cloud-default` lub `local-optional`).
-- [ ] Wyczyszczony stan testowy (`kms/data/state.db`) albo jawny snapshot startowy.
-- [ ] Sprawdzony seed danych w `example-vault` (mixed topics + permanent notes).
-- [ ] Suchy przebieg: `scan_inbox`, `make_review_queue`, `apply_decisions --dry-run`.
-- [ ] Wykonane testy regresji:
-  - [ ] `tests/test_review_queue.py`
-  - [ ] `tests/test_smoke_pipeline.py`
-- [ ] Ustalony owner testu i reviewer wynikow.
+- [x] Potwierdzony config profilu (`local` — `config.example.yaml`).
+- [x] Wyczyszczony stan testowy (`kms/data/state.db`) albo jawny snapshot startowy.
+- [x] Sprawdzony seed danych w `example-vault` (mixed topics + permanent notes + raii.md).
+- [x] Suchy przebieg: `scan_inbox`, `make_review_queue`, `apply_decisions --dry-run`.
+- [x] Wykonane testy regresji:
+  - [x] `tests/test_review_queue.py`
+  - [x] `tests/test_smoke_pipeline.py`
+  - [x] `tests/test_cli_scripts.py` (19 testów: verify_integrity, daily_report, generate_source_note, generate_dashboard, status, convert_conversation)
+  - [x] Pełny `pytest` (117 testów, 0 failures)
+- [x] Ustalony owner testu i reviewer wynikow.
 
 ## 2) Metryki bazowe (zapisz przed startem)
 

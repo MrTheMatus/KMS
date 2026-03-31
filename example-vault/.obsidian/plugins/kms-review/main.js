@@ -10,9 +10,10 @@
  * - Revert applied decisions
  */
 
-const { Plugin, Modal, Notice, MarkdownView, ItemView } = require("obsidian");
+const { Plugin, Modal, Notice, MarkdownView, ItemView, PluginSettingTab, Setting } = require("obsidian");
 const { exec } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 
 const REVIEW_QUEUE_FILENAME = "00_Admin/review-queue.md";
 const DASHBOARD_FILENAME = "00_Admin/dashboard.md";
@@ -20,8 +21,20 @@ const KMS_BEGIN = "<!-- kms:begin -->";
 const KMS_END = "<!-- kms:end -->";
 const PANEL_VIEW_TYPE = "kms-panel";
 
+const DEFAULT_SETTINGS = {
+  pythonPath: "",
+  projectRoot: "",
+  language: "pl",
+  anythingllmEnabled: false,
+  anythingllmSlug: "my-workspace",
+};
+
 module.exports = class KmsReviewPlugin extends Plugin {
   async onload() {
+    await this.loadSettings();
+
+    this.addSettingTab(new KmsSettingsTab(this.app, this));
+
     // ── Sidebar panel view ──
     this.registerView(PANEL_VIEW_TYPE, (leaf) => new KmsPanelView(leaf, this));
 
@@ -102,12 +115,21 @@ module.exports = class KmsReviewPlugin extends Plugin {
       this._activatePanel();
     });
 
-    console.log("KMS Review plugin loaded");
+    if (!this.settings.pythonPath && !this.settings.projectRoot) {
+      this._firstRunHealthCheck();
+    }
   }
 
   onunload() {
     this.app.workspace.detachLeavesOfType(PANEL_VIEW_TYPE);
-    console.log("KMS Review plugin unloaded");
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
 
   // ════════════════════════════════════════════════
@@ -138,11 +160,13 @@ module.exports = class KmsReviewPlugin extends Plugin {
   // ════════════════════════════════════════════════
 
   _getProjectRoot() {
+    if (this.settings.projectRoot) return this.settings.projectRoot;
     const vaultPath = this.app.vault.adapter.basePath;
     return path.dirname(vaultPath);
   }
 
   _getPython() {
+    if (this.settings.pythonPath) return this.settings.pythonPath;
     return path.join(this._getProjectRoot(), ".venv", "bin", "python");
   }
 
@@ -152,41 +176,43 @@ module.exports = class KmsReviewPlugin extends Plugin {
 
     const pipelines = {
       refresh: [
-        { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: "Scanning inbox" },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: "Generating review queue (AI)" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Updating dashboard" },
+        { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: "Skanowanie inboxu" },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: "Generowanie kolejki (AI)" },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
       ],
       apply: [
-        { cmd: `"${python}" -m kms.scripts.apply_decisions`, label: "Applying decisions" },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: "Refreshing queue" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Updating dashboard" },
+        { cmd: `"${python}" -m kms.scripts.apply_decisions`, label: "Stosowanie decyzji" },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: "Odświeżanie kolejki" },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
       ],
       retriage: [
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: "Re-classifying all proposals (LLM)" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Updating dashboard" },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: "Re-klasyfikacja propozycji (LLM)" },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
       ],
     };
 
     const steps = pipelines[mode];
     if (!steps) return;
 
-    const notice = new Notice(`KMS: Starting ${mode}...`, 0);
+    const progress = new KmsProgressModal(this.app, mode, steps.map((s) => s.label));
+    progress.open();
 
-    for (const step of steps) {
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      progress.setStep(i, "running");
+      const start = Date.now();
       try {
-        notice.setMessage(`KMS: ${step.label}...`);
         await this._exec(step.cmd, projectRoot);
+        progress.setStep(i, "done", Date.now() - start);
       } catch (err) {
-        notice.hide();
-        new Notice(`KMS Error: ${step.label} failed.\n${err.message}`, 10000);
-        console.error("KMS pipeline error:", err);
+        progress.setStep(i, "error", Date.now() - start);
+        progress.showError(err.message);
         this._refreshPanel();
         return;
       }
     }
 
-    notice.hide();
-    new Notice(`KMS: ${mode} complete!`, 5000);
+    progress.showDone();
     this._reloadKmsViews();
     this._refreshPanel();
   }
@@ -202,14 +228,53 @@ module.exports = class KmsReviewPlugin extends Plugin {
         },
         (error, stdout, stderr) => {
           if (error) {
-            const msg = stderr?.trim() || stdout?.trim() || error.message;
-            reject(new Error(msg.slice(-500)));
+            const raw = stderr?.trim() || stdout?.trim() || error.message;
+            const tbIdx = raw.lastIndexOf("Traceback");
+            const errIdx = raw.lastIndexOf("Error:");
+            const relevant = tbIdx >= 0 ? raw.slice(tbIdx) : errIdx >= 0 ? raw.slice(errIdx) : raw;
+            reject(new Error(relevant.slice(-800)));
           } else {
             resolve(stdout);
           }
         }
       );
     });
+  }
+
+  async _firstRunHealthCheck() {
+    const checks = [];
+    const pythonPath = this._getPython();
+    const projectRoot = this._getProjectRoot();
+    const configPath = path.join(projectRoot, "kms", "config", "config.yaml");
+
+    checks.push({
+      label: "Python",
+      ok: fs.existsSync(pythonPath),
+      detail: pythonPath,
+    });
+    checks.push({
+      label: "config.yaml",
+      ok: fs.existsSync(configPath),
+      detail: configPath,
+    });
+
+    let integrityOk = false;
+    if (checks.every((c) => c.ok)) {
+      try {
+        const out = await this._exec(
+          `"${pythonPath}" -m kms.scripts.verify_integrity --json`,
+          projectRoot,
+        );
+        integrityOk = JSON.parse(out).ok === true;
+      } catch { /* ignore */ }
+    }
+    checks.push({
+      label: "Integralność (verify_integrity)",
+      ok: integrityOk,
+      detail: integrityOk ? "OK" : "Uruchom pipeline lub sprawdź konfigurację",
+    });
+
+    new KmsHealthCheckModal(this.app, this, checks).open();
   }
 
   _reloadKmsViews() {
@@ -279,22 +344,37 @@ module.exports = class KmsReviewPlugin extends Plugin {
       if (!block.isKms) continue;
       const currentDecision = block.text.match(/decision:\s*(\S+)/);
       if (!currentDecision || currentDecision[1] !== "pending") continue;
-
-      const fieldRegex = /^(decision:\s*)(.*)$/m;
-      if (fieldRegex.test(block.text)) {
-        block.text = block.text.replace(fieldRegex, `$1${decision}`);
-        count++;
-      }
+      count++;
     }
 
     if (count === 0) {
-      new Notice("No pending proposals to change.");
+      new Notice("Brak propozycji pending do zmiany.");
       return;
     }
 
-    const newContent = blocks.map((b) => b.text).join("");
+    const label = decision === "approve" ? "zatwierdzić" : "odrzucić";
+    const confirmed = await new Promise((resolve) => {
+      new KmsConfirmModal(this.app, `Czy na pewno chcesz ${label} ${count} propozycji?`, resolve).open();
+    });
+    if (!confirmed) return;
+
+    content = await this.app.vault.read(file);
+    const freshBlocks = this._splitKmsBlocks(content);
+    let applied = 0;
+    for (const block of freshBlocks) {
+      if (!block.isKms) continue;
+      const currentDecision = block.text.match(/decision:\s*(\S+)/);
+      if (!currentDecision || currentDecision[1] !== "pending") continue;
+      const fieldRegex = /^(decision:\s*)(.*)$/m;
+      if (fieldRegex.test(block.text)) {
+        block.text = block.text.replace(fieldRegex, `$1${decision}`);
+        applied++;
+      }
+    }
+
+    const newContent = freshBlocks.map((b) => b.text).join("");
     await this.app.vault.modify(file, newContent);
-    new Notice(`${count} proposals set to ${decision}.`);
+    new Notice(`${applied} propozycji ustawionych na ${decision}.`);
     this._reloadKmsViews();
     this._refreshPanel();
   }
@@ -345,13 +425,14 @@ module.exports = class KmsReviewPlugin extends Plugin {
 
     const btnRow = container.createDiv({ cls: "kms-decision-buttons" });
     for (const d of [
-      { value: "approve", label: "Approve" },
-      { value: "reject", label: "Reject" },
-      { value: "postpone", label: "Postpone" },
+      { value: "approve", label: "Approve", aria: "Zatwierdź propozycję" },
+      { value: "reject", label: "Reject", aria: "Odrzuć propozycję" },
+      { value: "postpone", label: "Postpone", aria: "Odłóż propozycję" },
     ]) {
       const btn = btnRow.createEl("button", {
         cls: `kms-decision-btn${parsed.decision === d.value ? ` active-${d.value}` : ""}`,
         text: d.label,
+        attr: { "aria-label": `${d.aria} #${parsed.proposal_id}` },
       });
       btn.addEventListener("click", async () => {
         btnRow.querySelectorAll(".kms-decision-btn").forEach((b) => (b.className = "kms-decision-btn"));
@@ -944,6 +1025,240 @@ class KmsBatchRevertModal extends Modal {
       listEl.empty();
       listEl.createEl("p", { cls: "kms-search-error", text: `Error loading batches: ${err.message}` });
     }
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Settings Tab
+// ════════════════════════════════════════════════════════════════
+
+class KmsSettingsTab extends PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "KMS Review — Ustawienia" });
+
+    new Setting(containerEl)
+      .setName("Ścieżka Python")
+      .setDesc("Pełna ścieżka do interpretera Python (domyślnie: .venv/bin/python w katalogu projektu)")
+      .addText((text) =>
+        text
+          .setPlaceholder(".venv/bin/python")
+          .setValue(this.plugin.settings.pythonPath)
+          .onChange(async (value) => {
+            this.plugin.settings.pythonPath = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Katalog projektu")
+      .setDesc("Ścieżka do katalogu głównego KMS (domyślnie: katalog nadrzędny vaultu)")
+      .addText((text) =>
+        text
+          .setPlaceholder("auto-detect")
+          .setValue(this.plugin.settings.projectRoot)
+          .onChange(async (value) => {
+            this.plugin.settings.projectRoot = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Język interfejsu")
+      .setDesc("Język komunikatów w pluginie")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("pl", "Polski")
+          .addOption("en", "English")
+          .setValue(this.plugin.settings.language)
+          .onChange(async (value) => {
+            this.plugin.settings.language = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    containerEl.createEl("h3", { text: "AnythingLLM" });
+
+    new Setting(containerEl)
+      .setName("Włącz AnythingLLM")
+      .setDesc("Integracja z AnythingLLM dla retrieval i Q&A")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.anythingllmEnabled)
+          .onChange(async (value) => {
+            this.plugin.settings.anythingllmEnabled = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Workspace slug")
+      .setDesc("Nazwa workspace w AnythingLLM")
+      .addText((text) =>
+        text
+          .setPlaceholder("my-workspace")
+          .setValue(this.plugin.settings.anythingllmSlug)
+          .onChange(async (value) => {
+            this.plugin.settings.anythingllmSlug = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    containerEl.createEl("h3", { text: "Pomoc" });
+    const helpLink = containerEl.createEl("p");
+    helpLink.innerHTML = 'Otwórz <code>docs/workflow.md</code> aby zobaczyć pełny opis pracy z KMS.';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Health Check Modal (first-run)
+// ════════════════════════════════════════════════════════════════
+
+class KmsHealthCheckModal extends Modal {
+  constructor(app, plugin, checks) {
+    super(app);
+    this.plugin = plugin;
+    this.checks = checks;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("kms-health-modal");
+    contentEl.createEl("h3", { text: "KMS — Sprawdzanie konfiguracji" });
+
+    const list = contentEl.createEl("ul", { cls: "kms-health-list" });
+    for (const check of this.checks) {
+      const li = list.createEl("li", { cls: check.ok ? "kms-health-ok" : "kms-health-fail" });
+      li.createSpan({ text: check.ok ? "✓ " : "✗ " });
+      li.createSpan({ text: `${check.label}: ` });
+      li.createEl("code", { text: check.detail });
+    }
+
+    if (this.checks.some((c) => !c.ok)) {
+      contentEl.createEl("p", {
+        cls: "kms-health-hint",
+        text: "Popraw konfigurację w ustawieniach pluginu lub skopiuj config.example.yaml do config.yaml.",
+      });
+    }
+
+    const btnRow = contentEl.createDiv({ cls: "kms-health-actions" });
+    const settingsBtn = btnRow.createEl("button", { text: "Otwórz ustawienia", cls: "mod-cta" });
+    settingsBtn.addEventListener("click", () => {
+      this.close();
+      this.app.setting.open();
+      this.app.setting.openTabById("kms-review");
+    });
+    const closeBtn = btnRow.createEl("button", { text: "Zamknij" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Confirm Modal (for destructive bulk ops)
+// ════════════════════════════════════════════════════════════════
+
+class KmsConfirmModal extends Modal {
+  constructor(app, message, callback) {
+    super(app);
+    this.message = message;
+    this._callback = callback;
+    this._resolved = false;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("kms-confirm-modal");
+    contentEl.createEl("h3", { text: "Potwierdzenie" });
+    contentEl.createEl("p", { text: this.message });
+
+    const btnRow = contentEl.createDiv({ cls: "kms-confirm-actions" });
+    const yesBtn = btnRow.createEl("button", { text: "Tak, wykonaj", cls: "mod-cta mod-warning" });
+    yesBtn.addEventListener("click", () => { this._resolved = true; this.close(); this._callback(true); });
+    const noBtn = btnRow.createEl("button", { text: "Anuluj" });
+    noBtn.addEventListener("click", () => { this._resolved = true; this.close(); this._callback(false); });
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    if (!this._resolved && this._callback) this._callback(false);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Progress Modal (for pipeline steps)
+// ════════════════════════════════════════════════════════════════
+
+class KmsProgressModal extends Modal {
+  constructor(app, mode, stepLabels) {
+    super(app);
+    this.mode = mode;
+    this.stepLabels = stepLabels;
+    this.stepEls = [];
+    this.timeEls = [];
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("kms-progress-modal");
+    contentEl.createEl("h3", { text: `KMS: ${this.mode}` });
+
+    this.listEl = contentEl.createEl("ul", { cls: "kms-progress-list" });
+    for (const label of this.stepLabels) {
+      const li = this.listEl.createEl("li", { cls: "kms-progress-step kms-step-pending" });
+      li.createSpan({ cls: "kms-progress-icon", text: "○" });
+      li.createSpan({ cls: "kms-progress-label", text: label });
+      const timeSpan = li.createSpan({ cls: "kms-progress-time" });
+      this.stepEls.push(li);
+      this.timeEls.push(timeSpan);
+    }
+
+    this.footerEl = contentEl.createDiv({ cls: "kms-progress-footer" });
+  }
+
+  setStep(idx, state, elapsedMs) {
+    const li = this.stepEls[idx];
+    if (!li) return;
+    const icon = li.querySelector(".kms-progress-icon");
+    li.className = `kms-progress-step kms-step-${state}`;
+    if (state === "running") icon.textContent = "◉";
+    else if (state === "done") icon.textContent = "✓";
+    else if (state === "error") icon.textContent = "✗";
+    if (elapsedMs != null) {
+      this.timeEls[idx].textContent = `${(elapsedMs / 1000).toFixed(1)}s`;
+    }
+  }
+
+  showDone() {
+    this.footerEl.empty();
+    this.footerEl.createEl("p", { text: "Gotowe!", cls: "kms-progress-done" });
+    const btnRow = this.footerEl.createDiv({ cls: "kms-progress-actions" });
+    const closeBtn = btnRow.createEl("button", { text: "Zamknij", cls: "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+
+  showError(errorMsg) {
+    this.footerEl.empty();
+    this.footerEl.createEl("p", { text: "Błąd pipeline:", cls: "kms-progress-error-title" });
+    this.footerEl.createEl("pre", { cls: "kms-progress-error-detail", text: errorMsg.slice(-600) });
+
+    const btnRow = this.footerEl.createDiv({ cls: "kms-progress-actions" });
+    const copyBtn = btnRow.createEl("button", { text: "Kopiuj błąd" });
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(errorMsg);
+      new Notice("Skopiowano do schowka.");
+    });
+    const closeBtn = btnRow.createEl("button", { text: "Zamknij" });
+    closeBtn.addEventListener("click", () => this.close());
   }
 
   onClose() { this.contentEl.empty(); }
