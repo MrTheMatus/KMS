@@ -334,6 +334,27 @@ def _apply_one(
     # Idempotency: if a previous run already moved the file but failed before inserting artifact,
     # `src` might be missing while `dest` already exists.
     if not src.is_file() and not dest.is_file():
+        # Some inbox files are generated reports/metadata (e.g. `_topics_discovered.md`) and should
+        # never block the pipeline if they disappear between scan/review/apply.
+        if Path(src_rel).name.startswith("_"):
+            msg = f"missing source file (ignored system file): {src}"
+            audit(
+                conn,
+                "apply_decisions",
+                "proposal",
+                str(proposal_id),
+                {"item": item_id, "ignored": True},
+                msg,
+                batch_id=batch_id,
+            )
+            conn.commit()
+            _LOG.warning("%s", msg)
+            conn.execute(
+                "UPDATE items SET status = 'archived', updated_at = ? WHERE id = ?",
+                (utc_now_iso(), item_id),
+            )
+            conn.commit()
+            return True
         msg = f"missing source file: {src}"
         audit(
             conn,

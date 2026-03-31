@@ -152,6 +152,24 @@ def test_apply_missing_source_marks_failed(mini_repo: Path) -> None:
     assert audit_err is not None and "missing source file" in (audit_err[0] or "")
 
 
+def test_scan_inbox_ignores_underscore_reports(mini_repo: Path) -> None:
+    """Files like `_topics_discovered.md` are generated reports and must not enter the pipeline."""
+    cwd = mini_repo
+    py = sys.executable
+    cfg = str(cwd / "kms" / "config" / "config.yaml")
+
+    (cwd / "vault" / "00_Inbox" / "_topics_discovered.md").write_text("# report\n", encoding="utf-8")
+    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+
+    conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
+    found = conn.execute(
+        "SELECT id FROM items WHERE path = ?",
+        ("00_Inbox/_topics_discovered.md",),
+    ).fetchone()
+    conn.close()
+    assert found is None
+
+
 def test_apply_target_collision_marks_failed(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable

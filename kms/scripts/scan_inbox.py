@@ -43,7 +43,9 @@ def main() -> int:
     dup_warn = 0
 
     for path in sorted(inbox.rglob("*")):
-        if not path.is_file() or path.name.startswith("."):
+        # Ignore hidden files and generated/system reports (e.g. _topics_discovered.md).
+        # These are not user content and should never enter the review/apply pipeline.
+        if not path.is_file() or path.name.startswith(".") or path.name.startswith("_"):
             continue
         try:
             rel = path.relative_to(vp["root"])

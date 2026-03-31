@@ -30,6 +30,243 @@ const DEFAULT_SETTINGS = {
   onboardingDone: false,
 };
 
+// ── i18n ──
+const I18N = {
+  pl: {
+    // Wizard
+    wizStep1: "Witaj", wizStep2: "Środowisko", wizStep3: "Inbox", wizStep4: "Pierwszy skan",
+    wizTitle: "Witaj w KMS",
+    wizIntro: "KMS to system zarządzania wiedzą oparty o Obsidian. Pomaga uporządkować pliki z Inboxu \u2014 AI tworzy propozycje, Ty decydujesz.",
+    wizFeatures: [
+      "Wrzuć pliki do 00_Inbox/",
+      "Plugin skanuje, klasyfikuje i tworzy propozycje",
+      "Ty zatwierdzasz, odrzucasz lub odkładasz \u2014 jednym klikiem",
+      "Zatwierdzone trafiają do docelowych folderów, odrzucone do archiwum",
+    ],
+    wizHint: 'Ten kreator sprawdzi konfiguracj\u0119 i przeprowadzi Ci\u0119 przez pierwszy skan.',
+    wizEnvTitle: "Sprawdzanie \u015brodowiska",
+    wizEnvIntro: "Weryfikuj\u0119 czy wszystko jest gotowe do pracy.",
+    wizEnvFixConfig: "Skopiuj config.example.yaml \u2192 config.yaml",
+    wizEnvOk: "OK",
+    wizEnvIntegrity: "Integralno\u015b\u0107 systemu",
+    wizEnvChecking: "Sprawdzam...",
+    wizEnvNeedsRepair: "Wymaga naprawy",
+    wizEnvFirstRun: "Pierwsze uruchomienie \u2014 to normalne",
+    wizEnvSkip: "Pomi\u0144 \u2014 najpierw napraw powy\u017csze",
+    wizEnvFixHint: "Popraw problemy powy\u017cej, albo ustaw \u015bcie\u017cki w ustawieniach pluginu:",
+    wizOpenSettings: "Otw\u00f3rz ustawienia",
+    wizInboxTitle: "Tw\u00f3j Inbox",
+    wizInboxFound: (n) => `Znaleziono ${n} plik\u00f3w w 00_Inbox/. Mo\u017cesz uruchomi\u0107 pierwszy skan.`,
+    wizInboxEmpty: "00_Inbox/ jest pusty. Wrzu\u0107 tam pliki, kt\u00f3re chcesz przetworzy\u0107:",
+    wizInboxTips: ["Pliki PDF (artyku\u0142y, materia\u0142y)", "Pliki Markdown (notatki, fragmenty)", "Eksporty czat\u00f3w z Claude/ChatGPT"],
+    wizInboxLater: 'Mo\u017cesz te\u017c uruchomi\u0107 skan p\u00f3\u017aniej \u2014 Ctrl+P \u2192 "KMS: Refresh review queue".',
+    wizScanTitle: "Pierwszy skan",
+    wizScanIntro: (n) => `Skanuj\u0119 ${n} plik\u00f3w z Inboxu, tworz\u0119 propozycje i generuj\u0119 dashboard.`,
+    wizScanDone: "Gotowe! Otw\u00f3rz review queue aby przejrze\u0107 propozycje.",
+    wizRetry: "Spr\u00f3buj ponownie",
+    wizFinishAnyway: "Zako\u0144cz mimo to",
+    // Nav
+    back: "\u2190 Wstecz", next: "Dalej \u2192", skip: "Pomi\u0144", finish: "Zako\u0144cz",
+    openReviewQueue: "Otw\u00f3rz Review Queue", openDashboard: "Otw\u00f3rz Dashboard",
+    runScan: "Uruchom skan \u2192",
+    nextAnyway: "Dalej mimo to \u2192",
+    // Pipeline
+    scanning: "Skanowanie inboxu", generating: "Generowanie kolejki (AI)",
+    updatingDash: "Aktualizacja dashboardu", applying: "Stosowanie decyzji",
+    refreshingQueue: "Od\u015bwie\u017canie kolejki", retriaging: "Re-klasyfikacja propozycji (LLM)",
+    // Bulk
+    confirmTitle: "Potwierdzenie",
+    confirmYes: "Tak, wykonaj", confirmNo: "Anuluj",
+    bulkApproveQ: (n) => `Czy na pewno chcesz zatwierdzi\u0107 ${n} propozycji?`,
+    bulkRejectQ: (n) => `Czy na pewno chcesz odrzuci\u0107 ${n} propozycji?`,
+    bulkDone: (n, d) => `${n} propozycji ustawionych na ${d}.`,
+    noPending: "Brak propozycji pending do zmiany.",
+    // Progress
+    pipelineDone: "Gotowe!",
+    pipelineError: "B\u0142\u0105d pipeline:",
+    copyError: "Kopiuj b\u0142\u0105d", close: "Zamknij",
+    copied: "Skopiowano do schowka.",
+    // Panel
+    panelTitle: "KMS Control Panel",
+    secPipeline: "Pipeline", secBulk: "Operacje zbiorcze", secNavigate: "Nawigacja", secAdvanced: "Zaawansowane",
+    btnRefresh: "Od\u015bwie\u017c kolejk\u0119", btnApply: "Zastosuj decyzje", btnRetriage: "Re-klasyfikacja",
+    btnApproveAll: "Zatwierd\u017a wszystkie", btnRejectAll: "Odrzu\u0107 wszystkie",
+    btnReviewQueue: "Review queue", btnDashboard: "Dashboard", btnSearch: "Szukaj propozycji",
+    btnRevertProposal: "Cofnij propozycj\u0119", btnRevertBatch: "Cofnij batch",
+    loadingStats: "\u0141adowanie statystyk...", statsError: "B\u0142\u0105d statystyk:",
+    topDomains: "Top domeny",
+    tooltipRefresh: "Skan inbox + AI streszczenia + dashboard",
+    tooltipApply: "Przenie\u015b zatwierdzone pliki",
+    tooltipRetriage: "Re-klasyfikacja domen/temat\u00f3w przez LLM",
+    tooltipRevert: "Cofnij pojedyncz\u0105 zaaplikowan\u0105 propozycj\u0119",
+    tooltipBatchRevert: "Cofnij ca\u0142\u0105 operacj\u0119 batch",
+    // Search
+    searchTitle: "Szukaj propozycji KMS",
+    searchPlaceholder: "np. Angular, migration, python, debugging...",
+    searchOnlyPending: " Tylko pending",
+    searchMinChars: "Wpisz min. 2 znaki aby wyszuka\u0107...",
+    searchLoading: "Szukam...",
+    searchNoResults: (q) => `Brak propozycji pasuj\u0105cych do "${q}".`,
+    searchCount: (n) => `${n} wynik${n > 1 ? "\u00f3w" : ""}`,
+    goToProposal: "Id\u017a do propozycji",
+    openSource: "Otw\u00f3rz \u017ar\u00f3d\u0142o",
+    detailsBtn: "Szczeg\u00f3\u0142y",
+    // Detail
+    detailTitle: (id) => `Propozycja #${id}`,
+    detailLoading: "\u0141adowanie...",
+    detailNotFound: "Nie znaleziono propozycji.",
+    // Revert
+    revertTitle: "Cofnij zaaplikowan\u0105 propozycj\u0119",
+    revertDesc: "Podaj ID propozycji do cofni\u0119cia. Plik zostanie przeniesiony z powrotem, a rekord wykonania usuni\u0119ty.",
+    revertPreview: "Podgl\u0105d (dry-run)",
+    revertBtn: "Cofnij",
+    reverting: "Cofanie...",
+    revertFailed: "Cofanie nie powiod\u0142o si\u0119",
+    revertDone: (id) => `Propozycja #${id} cofni\u0119ta.`,
+    // Batch revert
+    batchRevertTitle: "Cofnij operacj\u0119 batch",
+    batchRevertDesc: "Wybierz batch do cofni\u0119cia \u2014 wszystkie propozycje z tej operacji zostan\u0105 cofni\u0119te.",
+    batchLoading: "\u0141adowanie batch\u00f3w...",
+    noBatches: "Brak aktywnych batch\u00f3w do cofni\u0119cia.",
+    activeBatches: (n) => `${n} aktywny${n > 1 ? "ch" : ""} batch${n > 1 ? "\u00f3w" : ""}`,
+    revertEntireBatch: "Cofnij ca\u0142y batch",
+    batchReverted: (id, n) => `Batch ${id} cofni\u0119ty (${n} propozycji).`,
+    batchRevertFailed: "Cofanie batcha nie powiod\u0142o si\u0119:",
+    // Settings
+    settingsTitle: "KMS Review \u2014 Ustawienia",
+    settingPython: "\u015acie\u017cka Python",
+    settingPythonDesc: "Pe\u0142na \u015bcie\u017cka do interpretera Python (domy\u015blnie: .venv/bin/python w katalogu projektu)",
+    settingProject: "Katalog projektu",
+    settingProjectDesc: "\u015acie\u017cka do katalogu g\u0142\u00f3wnego KMS (domy\u015blnie: katalog nadrz\u0119dny vaultu)",
+    settingLang: "J\u0119zyk interfejsu",
+    settingLangDesc: "J\u0119zyk komunikat\u00f3w w pluginie",
+    settingAnythingLLM: "W\u0142\u0105cz AnythingLLM",
+    settingAnythingLLMDesc: "Integracja z AnythingLLM dla retrieval i Q&A",
+    settingSlug: "Workspace slug",
+    settingSlugDesc: "Nazwa workspace w AnythingLLM",
+    settingHelp: "Pomoc",
+    settingHelpText: 'Otw\u00f3rz <code>docs/workflow.md</code> aby zobaczy\u0107 pe\u0142ny opis pracy z KMS.',
+    fileNotFound: (f) => `${f} nie znaleziono. Uruchom pipeline.`,
+  },
+  en: {
+    wizStep1: "Welcome", wizStep2: "Environment", wizStep3: "Inbox", wizStep4: "First scan",
+    wizTitle: "Welcome to KMS",
+    wizIntro: "KMS is a knowledge management system built on Obsidian. It helps organize files from your Inbox \u2014 AI creates proposals, you decide.",
+    wizFeatures: [
+      "Drop files into 00_Inbox/",
+      "Plugin scans, classifies, and creates proposals",
+      "You approve, reject, or postpone \u2014 with one click",
+      "Approved files go to target folders, rejected to archive",
+    ],
+    wizHint: "This wizard will check your configuration and walk you through the first scan.",
+    wizEnvTitle: "Environment check",
+    wizEnvIntro: "Verifying everything is ready.",
+    wizEnvFixConfig: "Copy config.example.yaml \u2192 config.yaml",
+    wizEnvOk: "OK",
+    wizEnvIntegrity: "System integrity",
+    wizEnvChecking: "Checking...",
+    wizEnvNeedsRepair: "Needs repair",
+    wizEnvFirstRun: "First run \u2014 this is normal",
+    wizEnvSkip: "Skip \u2014 fix the above first",
+    wizEnvFixHint: "Fix the issues above, or set paths in plugin settings:",
+    wizOpenSettings: "Open settings",
+    wizInboxTitle: "Your Inbox",
+    wizInboxFound: (n) => `Found ${n} files in 00_Inbox/. Ready to run the first scan.`,
+    wizInboxEmpty: "00_Inbox/ is empty. Drop files you want to process:",
+    wizInboxTips: ["PDF files (articles, materials)", "Markdown files (notes, fragments)", "Chat exports from Claude/ChatGPT"],
+    wizInboxLater: 'You can also run the scan later \u2014 Ctrl+P \u2192 "KMS: Refresh review queue".',
+    wizScanTitle: "First scan",
+    wizScanIntro: (n) => `Scanning ${n} files from Inbox, creating proposals, and generating dashboard.`,
+    wizScanDone: "Done! Open the review queue to see proposals.",
+    wizRetry: "Try again",
+    wizFinishAnyway: "Finish anyway",
+    back: "\u2190 Back", next: "Next \u2192", skip: "Skip", finish: "Finish",
+    openReviewQueue: "Open Review Queue", openDashboard: "Open Dashboard",
+    runScan: "Run scan \u2192",
+    nextAnyway: "Next anyway \u2192",
+    scanning: "Scanning inbox", generating: "Generating review queue (AI)",
+    updatingDash: "Updating dashboard", applying: "Applying decisions",
+    refreshingQueue: "Refreshing queue", retriaging: "Re-classifying proposals (LLM)",
+    confirmTitle: "Confirm",
+    confirmYes: "Yes, proceed", confirmNo: "Cancel",
+    bulkApproveQ: (n) => `Approve ${n} pending proposals?`,
+    bulkRejectQ: (n) => `Reject ${n} pending proposals?`,
+    bulkDone: (n, d) => `${n} proposals set to ${d}.`,
+    noPending: "No pending proposals to change.",
+    pipelineDone: "Done!",
+    pipelineError: "Pipeline error:",
+    copyError: "Copy error", close: "Close",
+    copied: "Copied to clipboard.",
+    // Panel
+    panelTitle: "KMS Control Panel",
+    secPipeline: "Pipeline", secBulk: "Bulk actions", secNavigate: "Navigate", secAdvanced: "Advanced",
+    btnRefresh: "Refresh queue", btnApply: "Apply decisions", btnRetriage: "Retriage all",
+    btnApproveAll: "Approve all pending", btnRejectAll: "Reject all pending",
+    btnReviewQueue: "Review queue", btnDashboard: "Dashboard", btnSearch: "Search proposals",
+    btnRevertProposal: "Revert proposal", btnRevertBatch: "Revert batch",
+    loadingStats: "Loading stats...", statsError: "Stats error:",
+    topDomains: "Top domains",
+    tooltipRefresh: "Scan inbox + AI summaries + dashboard",
+    tooltipApply: "Move approved files to targets",
+    tooltipRetriage: "Re-classify domains/topics via LLM",
+    tooltipRevert: "Revert single applied proposal",
+    tooltipBatchRevert: "Undo entire bulk operation",
+    // Search
+    searchTitle: "Search KMS proposals",
+    searchPlaceholder: "e.g. Angular, migration, python, debugging...",
+    searchOnlyPending: " Only pending",
+    searchMinChars: "Type at least 2 characters to search...",
+    searchLoading: "Searching...",
+    searchNoResults: (q) => `No proposals matching "${q}".`,
+    searchCount: (n) => `${n} result${n > 1 ? "s" : ""}`,
+    goToProposal: "Go to proposal",
+    openSource: "Open source",
+    detailsBtn: "Details",
+    // Detail
+    detailTitle: (id) => `Proposal #${id}`,
+    detailLoading: "Loading...",
+    detailNotFound: "Proposal not found.",
+    // Revert
+    revertTitle: "Revert applied proposal",
+    revertDesc: "Enter the proposal ID to revert. This will move the file back to its original location and remove the execution record.",
+    revertPreview: "Preview (dry-run)",
+    revertBtn: "Revert",
+    reverting: "Reverting...",
+    revertFailed: "Revert failed",
+    revertDone: (id) => `Proposal #${id} reverted.`,
+    // Batch revert
+    batchRevertTitle: "Revert batch operation",
+    batchRevertDesc: "Select a batch to revert all proposals applied in that operation.",
+    batchLoading: "Loading batches...",
+    noBatches: "No active batches to revert.",
+    activeBatches: (n) => `${n} active batch${n > 1 ? "es" : ""}`,
+    revertEntireBatch: "Revert entire batch",
+    batchReverted: (id, n) => `Batch ${id} reverted (${n} proposals).`,
+    batchRevertFailed: "Batch revert failed:",
+    // Settings
+    settingsTitle: "KMS Review \u2014 Settings",
+    settingPython: "Python path",
+    settingPythonDesc: "Full path to Python interpreter (default: .venv/bin/python in project dir)",
+    settingProject: "Project directory",
+    settingProjectDesc: "Path to KMS root directory (default: parent of vault)",
+    settingLang: "Interface language",
+    settingLangDesc: "Language for plugin messages",
+    settingAnythingLLM: "Enable AnythingLLM",
+    settingAnythingLLMDesc: "AnythingLLM integration for retrieval and Q&A",
+    settingSlug: "Workspace slug",
+    settingSlugDesc: "AnythingLLM workspace name",
+    settingHelp: "Help",
+    settingHelpText: 'Open <code>docs/workflow.md</code> for a full workflow description.',
+    fileNotFound: (f) => `${f} not found. Run the pipeline first.`,
+  },
+};
+
+function _t(settings, key, ...args) {
+  const lang = settings?.language || "pl";
+  const val = (I18N[lang] || I18N.pl)[key] || (I18N.pl)[key] || key;
+  return typeof val === "function" ? val(...args) : val;
+}
+
 module.exports = class KmsReviewPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
@@ -181,20 +418,21 @@ module.exports = class KmsReviewPlugin extends Plugin {
     const projectRoot = this._getProjectRoot();
     const python = this._getPython();
 
+    const t = (k, ...a) => _t(this.settings, k, ...a);
     const pipelines = {
       refresh: [
-        { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: "Skanowanie inboxu" },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: "Generowanie kolejki (AI)" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
+        { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: t("scanning") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: t("generating") },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
       apply: [
-        { cmd: `"${python}" -m kms.scripts.apply_decisions`, label: "Stosowanie decyzji" },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: "Odświeżanie kolejki" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
+        { cmd: `"${python}" -m kms.scripts.apply_decisions`, label: t("applying") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: t("refreshingQueue") },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
       retriage: [
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: "Re-klasyfikacja propozycji (LLM)" },
-        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: "Aktualizacja dashboardu" },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: t("retriaging") },
+        { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
     };
 
@@ -222,6 +460,40 @@ module.exports = class KmsReviewPlugin extends Plugin {
     progress.showDone();
     this._reloadKmsViews();
     this._refreshPanel();
+  }
+
+  async _runRevertPipeline(revertCmdLabel, revertCmd) {
+    const projectRoot = this._getProjectRoot();
+    const python = this._getPython();
+    const t = (k, ...a) => _t(this.settings, k, ...a);
+    const steps = [
+      { cmd: revertCmd, label: revertCmdLabel || t("revertBtn") },
+      { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: t("refreshingQueue") },
+      { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
+    ];
+
+    const progress = new KmsProgressModal(this.app, "revert", steps.map((s) => s.label));
+    progress.open();
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      progress.setStep(i, "running");
+      const start = Date.now();
+      try {
+        await this._exec(step.cmd, projectRoot);
+        progress.setStep(i, "done", Date.now() - start);
+      } catch (err) {
+        progress.setStep(i, "error", Date.now() - start);
+        progress.showError(err.message);
+        this._refreshPanel();
+        return false;
+      }
+    }
+
+    progress.showDone();
+    this._reloadKmsViews();
+    this._refreshPanel();
+    return true;
   }
 
   _exec(cmd, cwd) {
@@ -322,14 +594,15 @@ module.exports = class KmsReviewPlugin extends Plugin {
       count++;
     }
 
+    const t = (k, ...a) => _t(this.settings, k, ...a);
     if (count === 0) {
-      new Notice("Brak propozycji pending do zmiany.");
+      new Notice(t("noPending"));
       return;
     }
 
-    const label = decision === "approve" ? "zatwierdzić" : "odrzucić";
+    const qKey = decision === "approve" ? "bulkApproveQ" : "bulkRejectQ";
     const confirmed = await new Promise((resolve) => {
-      new KmsConfirmModal(this.app, `Czy na pewno chcesz ${label} ${count} propozycji?`, resolve).open();
+      new KmsConfirmModal(this.app, this.plugin || this, t(qKey, count), resolve).open();
     });
     if (!confirmed) return;
 
@@ -349,7 +622,7 @@ module.exports = class KmsReviewPlugin extends Plugin {
 
     const newContent = freshBlocks.map((b) => b.text).join("");
     await this.app.vault.modify(file, newContent);
-    new Notice(`${applied} propozycji ustawionych na ${decision}.`);
+    new Notice(t("bulkDone", applied, decision));
     this._reloadKmsViews();
     this._refreshPanel();
   }
@@ -363,7 +636,7 @@ module.exports = class KmsReviewPlugin extends Plugin {
     if (file) {
       await this.app.workspace.openLinkText(file.path, "", false);
     } else {
-      new Notice(`${filePath} not found. Run pipeline first.`);
+      new Notice(_t(this.settings, "fileNotFound", filePath));
     }
   }
 
@@ -532,12 +805,14 @@ class KmsPanelView extends ItemView {
   }
 
   async _render(root) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+
     // ── Header ──
-    root.createEl("h4", { cls: "kms-panel-title", text: "KMS Control Panel" });
+    root.createEl("h4", { cls: "kms-panel-title", text: t("panelTitle") });
 
     // ── Stats (loaded from dashboard script output) ──
     const statsEl = root.createDiv({ cls: "kms-panel-stats" });
-    statsEl.createEl("p", { cls: "kms-search-loading", text: "Loading stats..." });
+    statsEl.createEl("p", { cls: "kms-search-loading", text: t("loadingStats") });
 
     this._loadStats(statsEl);
 
@@ -549,26 +824,26 @@ class KmsPanelView extends ItemView {
     };
 
     // Pipeline
-    const pipeSection = section("Pipeline");
-    this._actionBtn(pipeSection, "Refresh queue", "rotate-cw", "Scan inbox + AI summaries + dashboard", () => this.plugin._runPipeline("refresh"));
-    this._actionBtn(pipeSection, "Apply decisions", "check-circle", "Move approved files to targets", () => this.plugin._runPipeline("apply"));
-    this._actionBtn(pipeSection, "Retriage all", "wand", "Re-classify domains/topics via LLM", () => this.plugin._runPipeline("retriage"));
+    const pipeSection = section(t("secPipeline"));
+    this._actionBtn(pipeSection, t("btnRefresh"), "rotate-cw", t("tooltipRefresh"), () => this.plugin._runPipeline("refresh"));
+    this._actionBtn(pipeSection, t("btnApply"), "check-circle", t("tooltipApply"), () => this.plugin._runPipeline("apply"));
+    this._actionBtn(pipeSection, t("btnRetriage"), "wand", t("tooltipRetriage"), () => this.plugin._runPipeline("retriage"));
 
     // Bulk
-    const bulkSection = section("Bulk actions");
-    this._actionBtn(bulkSection, "Approve all pending", "check", "", () => this.plugin._bulkDecision("approve"));
-    this._actionBtn(bulkSection, "Reject all pending", "x", "", () => this.plugin._bulkDecision("reject"));
+    const bulkSection = section(t("secBulk"));
+    this._actionBtn(bulkSection, t("btnApproveAll"), "check", "", () => this.plugin._bulkDecision("approve"));
+    this._actionBtn(bulkSection, t("btnRejectAll"), "x", "", () => this.plugin._bulkDecision("reject"));
 
     // Navigate
-    const navSection = section("Navigate");
-    this._actionBtn(navSection, "Review queue", "file-text", "", () => this.plugin._openFile(REVIEW_QUEUE_FILENAME));
-    this._actionBtn(navSection, "Dashboard", "bar-chart-2", "", () => this.plugin._openFile(DASHBOARD_FILENAME));
-    this._actionBtn(navSection, "Search proposals", "search", "", () => new KmsSearchModal(this.plugin.app, this.plugin).open());
+    const navSection = section(t("secNavigate"));
+    this._actionBtn(navSection, t("btnReviewQueue"), "file-text", "", () => this.plugin._openFile(REVIEW_QUEUE_FILENAME));
+    this._actionBtn(navSection, t("btnDashboard"), "bar-chart-2", "", () => this.plugin._openFile(DASHBOARD_FILENAME));
+    this._actionBtn(navSection, t("btnSearch"), "search", "", () => new KmsSearchModal(this.plugin.app, this.plugin).open());
 
     // Advanced
-    const advSection = section("Advanced");
-    this._actionBtn(advSection, "Revert proposal", "undo", "Revert single applied proposal", () => new KmsRevertModal(this.plugin.app, this.plugin).open());
-    this._actionBtn(advSection, "Revert batch", "rotate-ccw", "Undo entire bulk operation", () => new KmsBatchRevertModal(this.plugin.app, this.plugin).open());
+    const advSection = section(t("secAdvanced"));
+    this._actionBtn(advSection, t("btnRevertProposal"), "undo", t("tooltipRevert"), () => new KmsRevertModal(this.plugin.app, this.plugin).open());
+    this._actionBtn(advSection, t("btnRevertBatch"), "rotate-ccw", t("tooltipBatchRevert"), () => new KmsBatchRevertModal(this.plugin.app, this.plugin).open());
   }
 
   _actionBtn(parent, label, icon, tooltip, onClick) {
@@ -622,7 +897,7 @@ class KmsPanelView extends ItemView {
 
       if (sorted.length > 0 && !(sorted.length === 1 && sorted[0][0] === "(none)")) {
         const domEl = el.createDiv({ cls: "kms-panel-domains" });
-        domEl.createEl("div", { cls: "kms-panel-section-title", text: "Top domains" });
+        domEl.createEl("div", { cls: "kms-panel-section-title", text: _t(this.plugin.settings, "topDomains") });
         for (const [domain, count] of sorted) {
           const row = domEl.createDiv({ cls: "kms-domain-row" });
           row.createSpan({ cls: "kms-domain-name", text: domain });
@@ -634,7 +909,7 @@ class KmsPanelView extends ItemView {
       }
     } catch (err) {
       el.empty();
-      el.createEl("p", { cls: "kms-search-error", text: `Stats error: ${err.message}` });
+      el.createEl("p", { cls: "kms-search-error", text: `${_t(this.plugin.settings, "statsError")} ${err.message}` });
     }
   }
 
@@ -659,18 +934,19 @@ class KmsSearchModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.addClass("kms-search-modal");
-    contentEl.createEl("h3", { text: "Search KMS proposals" });
+    contentEl.createEl("h3", { text: t("searchTitle") });
 
     const inputRow = contentEl.createDiv({ cls: "kms-search-input-row" });
     const input = inputRow.createEl("input", {
       cls: "kms-search-input",
       type: "text",
-      placeholder: "np. Angular, migration, python, debugging...",
+      placeholder: t("searchPlaceholder"),
     });
     const allToggle = inputRow.createEl("label", { cls: "kms-search-toggle" });
     const checkbox = allToggle.createEl("input", { type: "checkbox" });
-    allToggle.appendText(" Tylko pending");
+    allToggle.appendText(t("searchOnlyPending"));
 
     const resultsEl = contentEl.createDiv({ cls: "kms-search-results" });
 
@@ -688,9 +964,10 @@ class KmsSearchModal extends Modal {
   }
 
   async _search(query, pendingOnly, resultsEl) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     if (query.length < 2) {
       resultsEl.empty();
-      resultsEl.createEl("p", { cls: "kms-search-hint", text: "Wpisz min. 2 znaki aby wyszukać..." });
+      resultsEl.createEl("p", { cls: "kms-search-hint", text: t("searchMinChars") });
       return;
     }
 
@@ -701,7 +978,7 @@ class KmsSearchModal extends Modal {
     const cmd = `"${python}" -m kms.scripts.search_proposals --query "${escaped}" --format json${flag}`;
 
     resultsEl.empty();
-    resultsEl.createEl("p", { cls: "kms-search-loading", text: "Searching..." });
+    resultsEl.createEl("p", { cls: "kms-search-loading", text: t("searchLoading") });
 
     try {
       const stdout = await this.plugin._exec(cmd, projectRoot);
@@ -709,10 +986,10 @@ class KmsSearchModal extends Modal {
       resultsEl.empty();
 
       if (results.length === 0) {
-        resultsEl.createEl("p", { cls: "kms-search-empty", text: `No proposals matching "${query}".` });
+        resultsEl.createEl("p", { cls: "kms-search-empty", text: t("searchNoResults", query) });
         return;
       }
-      resultsEl.createEl("p", { cls: "kms-search-count", text: `${results.length} result${results.length > 1 ? "s" : ""}` });
+      resultsEl.createEl("p", { cls: "kms-search-count", text: t("searchCount", results.length) });
 
       for (const r of results) {
         const item = resultsEl.createDiv({ cls: "kms-search-result" });
@@ -732,13 +1009,13 @@ class KmsSearchModal extends Modal {
         }
 
         const actions = item.createDiv({ cls: "kms-search-actions" });
-        const goBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-goto", text: "Go to proposal" });
+        const goBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-goto", text: t("goToProposal") });
         goBtn.addEventListener("click", (e) => { e.stopPropagation(); this.close(); this.plugin._scrollToProposal(r.proposal_id); });
 
-        const srcBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-source", text: "Open source" });
+        const srcBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-source", text: t("openSource") });
         srcBtn.addEventListener("click", (e) => { e.stopPropagation(); this.close(); this.plugin._openFile(r.item_path); });
 
-        const detailBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-detail", text: "Details" });
+        const detailBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-detail", text: t("detailsBtn") });
         detailBtn.addEventListener("click", (e) => { e.stopPropagation(); this.close(); new KmsDetailModal(this.app, this.plugin, r.proposal_id).open(); });
       }
     } catch (err) {
@@ -763,11 +1040,12 @@ class KmsDetailModal extends Modal {
 
   async onOpen() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.addClass("kms-detail-modal");
-    contentEl.createEl("h3", { text: `Proposal #${this.proposalId}` });
+    contentEl.createEl("h3", { text: t("detailTitle", this.proposalId) });
 
     const body = contentEl.createDiv({ cls: "kms-detail-body" });
-    body.createEl("p", { cls: "kms-search-loading", text: "Loading..." });
+    body.createEl("p", { cls: "kms-search-loading", text: t("detailLoading") });
 
     const python = this.plugin._getPython();
     const projectRoot = this.plugin._getProjectRoot();
@@ -778,7 +1056,7 @@ class KmsDetailModal extends Modal {
       const results = JSON.parse(stdout);
       body.empty();
 
-      if (results.length === 0) { body.createEl("p", { text: "Proposal not found." }); return; }
+      if (results.length === 0) { body.createEl("p", { text: t("detailNotFound") }); return; }
 
       const d = results[0];
 
@@ -828,21 +1106,28 @@ class KmsDetailModal extends Modal {
       }
 
       const actions = body.createDiv({ cls: "kms-detail-actions" });
-      const gotoBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-goto", text: "Go to proposal in queue" });
+      const gotoBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-goto", text: t("goToProposal") });
       gotoBtn.addEventListener("click", () => { this.close(); this.plugin._scrollToProposal(this.proposalId); });
-      const srcBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-source", text: "Open source file" });
+      const srcBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-source", text: t("openSource") });
       srcBtn.addEventListener("click", () => { this.close(); this.plugin._openFile(d.item_path); });
 
       if (d.can_revert) {
-        const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: "Revert this apply" });
+        const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: t("revertBtn") });
         revertBtn.addEventListener("click", async () => {
-          revertBtn.disabled = true; revertBtn.textContent = "Reverting...";
+          revertBtn.disabled = true; revertBtn.textContent = t("reverting");
           try {
-            await this.plugin._exec(`"${python}" -m kms.scripts.revert_apply --proposal-id ${this.proposalId}`, projectRoot);
-            new Notice(`Proposal #${this.proposalId} reverted.`);
-            this.close();
-            this.plugin._runPipeline("refresh");
-          } catch (err) { revertBtn.textContent = "Revert failed"; new Notice(`Revert failed: ${err.message}`, 10000); }
+            const ok = await this.plugin._runRevertPipeline(
+              `${t("revertBtn")} #${this.proposalId}`,
+              `"${python}" -m kms.scripts.revert_apply --proposal-id ${this.proposalId}`,
+            );
+            if (ok) {
+              new Notice(t("revertDone", this.proposalId));
+              this.close();
+            } else {
+              revertBtn.textContent = t("revertFailed");
+              revertBtn.disabled = false;
+            }
+          } catch (err) { revertBtn.textContent = t("revertFailed"); new Notice(`${t("revertFailed")}: ${err.message}`, 10000); revertBtn.disabled = false; }
         });
       }
     } catch (err) {
@@ -873,17 +1158,18 @@ class KmsRevertModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.addClass("kms-revert-modal");
-    contentEl.createEl("h3", { text: "Revert applied proposal" });
-    contentEl.createEl("p", { text: "Enter the proposal ID to revert. This will move the file back to its original location and remove the execution record." });
+    contentEl.createEl("h3", { text: t("revertTitle") });
+    contentEl.createEl("p", { text: t("revertDesc") });
 
     const inputRow = contentEl.createDiv({ cls: "kms-revert-input-row" });
     const input = inputRow.createEl("input", { cls: "kms-revert-input", type: "number", placeholder: "Proposal ID (e.g. 42)" });
     const previewEl = contentEl.createDiv({ cls: "kms-revert-preview" });
 
     const btnRow = contentEl.createDiv({ cls: "kms-revert-btn-row" });
-    const previewBtn = btnRow.createEl("button", { cls: "kms-search-action-btn kms-action-detail", text: "Preview (dry-run)" });
-    const revertBtn = btnRow.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: "Revert" });
+    const previewBtn = btnRow.createEl("button", { cls: "kms-search-action-btn kms-action-detail", text: t("revertPreview") });
+    const revertBtn = btnRow.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: t("revertBtn") });
     revertBtn.disabled = true;
 
     previewBtn.addEventListener("click", async () => {
@@ -912,15 +1198,22 @@ class KmsRevertModal extends Modal {
     revertBtn.addEventListener("click", async () => {
       const pid = parseInt(input.value, 10);
       if (!pid) return;
-      revertBtn.disabled = true; revertBtn.textContent = "Reverting...";
+      revertBtn.disabled = true; revertBtn.textContent = t("reverting");
       const python = this.plugin._getPython();
       const projectRoot = this.plugin._getProjectRoot();
       try {
-        await this.plugin._exec(`"${python}" -m kms.scripts.revert_apply --proposal-id ${pid}`, projectRoot);
-        new Notice(`Proposal #${pid} reverted successfully.`);
-        this.close();
-        this.plugin._runPipeline("refresh");
-      } catch (err) { revertBtn.textContent = "Revert failed"; new Notice(`Revert failed: ${err.message}`, 10000); }
+        const ok = await this.plugin._runRevertPipeline(
+          `${t("revertBtn")} #${pid}`,
+          `"${python}" -m kms.scripts.revert_apply --proposal-id ${pid}`,
+        );
+        if (ok) {
+          new Notice(t("revertDone", pid));
+          this.close();
+        } else {
+          revertBtn.textContent = t("revertFailed");
+          revertBtn.disabled = false;
+        }
+      } catch (err) { revertBtn.textContent = t("revertFailed"); new Notice(`${t("revertFailed")}: ${err.message}`, 10000); revertBtn.disabled = false; }
     });
     setTimeout(() => input.focus(), 50);
   }
@@ -940,12 +1233,13 @@ class KmsBatchRevertModal extends Modal {
 
   async onOpen() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.addClass("kms-revert-modal");
-    contentEl.createEl("h3", { text: "Revert batch operation" });
-    contentEl.createEl("p", { text: "Select a batch to revert all proposals applied in that operation." });
+    contentEl.createEl("h3", { text: t("batchRevertTitle") });
+    contentEl.createEl("p", { text: t("batchRevertDesc") });
 
     const listEl = contentEl.createDiv({ cls: "kms-search-results" });
-    listEl.createEl("p", { cls: "kms-search-loading", text: "Loading batches..." });
+    listEl.createEl("p", { cls: "kms-search-loading", text: t("batchLoading") });
 
     const python = this.plugin._getPython();
     const projectRoot = this.plugin._getProjectRoot();
@@ -960,11 +1254,11 @@ class KmsBatchRevertModal extends Modal {
 
       const active = batches.filter((b) => !b.reverted_at);
       if (active.length === 0) {
-        listEl.createEl("p", { cls: "kms-search-empty", text: "No active batches to revert." });
+        listEl.createEl("p", { cls: "kms-search-empty", text: t("noBatches") });
         return;
       }
 
-      listEl.createEl("p", { cls: "kms-search-count", text: `${active.length} active batch${active.length > 1 ? "es" : ""}` });
+      listEl.createEl("p", { cls: "kms-search-count", text: t("activeBatches", active.length) });
 
       for (const b of active) {
         const item = listEl.createDiv({ cls: "kms-search-result" });
@@ -983,16 +1277,21 @@ class KmsBatchRevertModal extends Modal {
           revertBtn.disabled = true;
           revertBtn.textContent = "Reverting...";
           try {
-            await this.plugin._exec(
+            const ok = await this.plugin._runRevertPipeline(
+              `Revert batch ${b.id.slice(0, 8)} (${b.proposal_count} proposals)`,
               `"${python}" -m kms.scripts.revert_apply --batch-id "${b.id}"`,
-              projectRoot,
             );
-            new Notice(`Batch ${b.id.slice(0, 8)} reverted (${b.proposal_count} proposals).`);
-            this.close();
-            this.plugin._runPipeline("refresh");
+            if (ok) {
+              new Notice(`Batch ${b.id.slice(0, 8)} reverted (${b.proposal_count} proposals).`);
+              this.close();
+            } else {
+              revertBtn.textContent = "Revert failed";
+              revertBtn.disabled = false;
+            }
           } catch (err) {
             revertBtn.textContent = "Revert failed";
             new Notice(`Batch revert failed: ${err.message}`, 10000);
+            revertBtn.disabled = false;
           }
         });
       }
