@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS = {
   language: "pl",
   anythingllmEnabled: false,
   anythingllmSlug: "my-workspace",
+  onboardingDone: false,
 };
 
 module.exports = class KmsReviewPlugin extends Plugin {
@@ -110,13 +111,19 @@ module.exports = class KmsReviewPlugin extends Plugin {
       callback: () => new KmsBatchRevertModal(this.app, this).open(),
     });
 
+    this.addCommand({
+      id: "run-wizard",
+      name: "Run setup wizard",
+      callback: () => new KmsOnboardingWizard(this.app, this).open(),
+    });
+
     // ── Ribbon → opens panel ──
     this.addRibbonIcon("layout-dashboard", "KMS Control Panel", () => {
       this._activatePanel();
     });
 
-    if (!this.settings.pythonPath && !this.settings.projectRoot) {
-      this._firstRunHealthCheck();
+    if (!this.settings.onboardingDone) {
+      this.app.workspace.onLayoutReady(() => this._firstRunHealthCheck());
     }
   }
 
@@ -242,39 +249,7 @@ module.exports = class KmsReviewPlugin extends Plugin {
   }
 
   async _firstRunHealthCheck() {
-    const checks = [];
-    const pythonPath = this._getPython();
-    const projectRoot = this._getProjectRoot();
-    const configPath = path.join(projectRoot, "kms", "config", "config.yaml");
-
-    checks.push({
-      label: "Python",
-      ok: fs.existsSync(pythonPath),
-      detail: pythonPath,
-    });
-    checks.push({
-      label: "config.yaml",
-      ok: fs.existsSync(configPath),
-      detail: configPath,
-    });
-
-    let integrityOk = false;
-    if (checks.every((c) => c.ok)) {
-      try {
-        const out = await this._exec(
-          `"${pythonPath}" -m kms.scripts.verify_integrity --json`,
-          projectRoot,
-        );
-        integrityOk = JSON.parse(out).ok === true;
-      } catch { /* ignore */ }
-    }
-    checks.push({
-      label: "Integralność (verify_integrity)",
-      ok: integrityOk,
-      detail: integrityOk ? "OK" : "Uruchom pipeline lub sprawdź konfigurację",
-    });
-
-    new KmsHealthCheckModal(this.app, this, checks).open();
+    new KmsOnboardingWizard(this.app, this).open();
   }
 
   _reloadKmsViews() {
@@ -1119,45 +1094,262 @@ class KmsSettingsTab extends PluginSettingTab {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Health Check Modal (first-run)
+// Onboarding Wizard (first-run)
 // ════════════════════════════════════════════════════════════════
 
-class KmsHealthCheckModal extends Modal {
-  constructor(app, plugin, checks) {
+class KmsOnboardingWizard extends Modal {
+  constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
-    this.checks = checks;
+    this.step = 0;
+    this.checks = {};
+    this.inboxCount = 0;
   }
 
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("kms-health-modal");
-    contentEl.createEl("h3", { text: "KMS — Sprawdzanie konfiguracji" });
+    contentEl.addClass("kms-wizard-modal");
+    this._renderStep();
+  }
 
-    const list = contentEl.createEl("ul", { cls: "kms-health-list" });
-    for (const check of this.checks) {
-      const li = list.createEl("li", { cls: check.ok ? "kms-health-ok" : "kms-health-fail" });
-      li.createSpan({ text: check.ok ? "✓ " : "✗ " });
-      li.createSpan({ text: `${check.label}: ` });
-      li.createEl("code", { text: check.detail });
+  _renderStep() {
+    const { contentEl } = this;
+    contentEl.empty();
+
+    // Step indicator
+    const steps = ["Witaj", "Środowisko", "Inbox", "Pierwszy skan"];
+    const indicator = contentEl.createDiv({ cls: "kms-wizard-steps" });
+    for (let i = 0; i < steps.length; i++) {
+      const dot = indicator.createSpan({
+        cls: `kms-wizard-dot${i === this.step ? " active" : i < this.step ? " done" : ""}`,
+        text: i < this.step ? "✓" : String(i + 1),
+      });
+      dot.title = steps[i];
+      if (i < steps.length - 1) indicator.createSpan({ cls: "kms-wizard-dot-line" });
     }
 
-    if (this.checks.some((c) => !c.ok)) {
-      contentEl.createEl("p", {
-        cls: "kms-health-hint",
-        text: "Popraw konfigurację w ustawieniach pluginu lub skopiuj config.example.yaml do config.yaml.",
+    const body = contentEl.createDiv({ cls: "kms-wizard-body" });
+
+    if (this.step === 0) this._stepWelcome(body);
+    else if (this.step === 1) this._stepEnvironment(body);
+    else if (this.step === 2) this._stepInbox(body);
+    else if (this.step === 3) this._stepFirstRun(body);
+  }
+
+  // ── Step 0: Welcome ──
+  _stepWelcome(body) {
+    body.createEl("h3", { text: "Witaj w KMS" });
+    body.createEl("p", { text: "KMS to system zarządzania wiedzą oparty o Obsidian. Pomaga uporządkować pliki z Inboxu — AI tworzy propozycje, Ty decydujesz." });
+
+    const features = body.createEl("ul", { cls: "kms-wizard-features" });
+    for (const f of [
+      "Wrzuć pliki do 00_Inbox/",
+      "Plugin skanuje, klasyfikuje i tworzy propozycje",
+      "Ty zatwierdzasz, odrzucasz lub odkładasz — jednym klikiem",
+      "Zatwierdzone trafiają do docelowych folderów, odrzucone do archiwum",
+    ]) {
+      features.createEl("li", { text: f });
+    }
+
+    body.createEl("p", { cls: "kms-wizard-hint", text: "Ten kreator sprawdzi konfigurację i przeprowadzi Cię przez pierwszy skan." });
+
+    this._navButtons(body, { showBack: false, nextLabel: "Dalej →" });
+  }
+
+  // ── Step 1: Environment checks ──
+  async _stepEnvironment(body) {
+    body.createEl("h3", { text: "Sprawdzanie środowiska" });
+    body.createEl("p", { text: "Weryfikuję czy wszystko jest gotowe do pracy." });
+
+    const list = body.createEl("ul", { cls: "kms-health-list" });
+    const pythonPath = this.plugin._getPython();
+    const projectRoot = this.plugin._getProjectRoot();
+    const configPath = path.join(projectRoot, "kms", "config", "config.yaml");
+
+    // Check 1: Python
+    const pythonOk = fs.existsSync(pythonPath);
+    this.checks.python = pythonOk;
+    this._checkItem(list, pythonOk, "Python", pythonOk ? pythonPath : `Nie znaleziono: ${pythonPath}`);
+
+    // Check 2: config.yaml
+    const configOk = fs.existsSync(configPath);
+    this.checks.config = configOk;
+    this._checkItem(list, configOk, "config.yaml", configOk ? "OK" : "Skopiuj config.example.yaml → config.yaml");
+
+    // Check 3: verify_integrity (async)
+    const intLi = this._checkItem(list, null, "Integralność systemu", "Sprawdzam...");
+    if (pythonOk && configOk) {
+      try {
+        const out = await this.plugin._exec(`"${pythonPath}" -m kms.scripts.verify_integrity --json`, projectRoot);
+        const ok = JSON.parse(out).ok === true;
+        this.checks.integrity = ok;
+        intLi.className = ok ? "kms-health-ok" : "kms-health-fail";
+        intLi.empty();
+        intLi.createSpan({ text: ok ? "✓ " : "✗ " });
+        intLi.createSpan({ text: "Integralność systemu: " });
+        intLi.createEl("code", { text: ok ? "OK" : "Wymaga naprawy" });
+      } catch {
+        this.checks.integrity = false;
+        intLi.className = "kms-health-fail";
+        intLi.empty();
+        intLi.createSpan({ text: "✗ " });
+        intLi.createSpan({ text: "Integralność systemu: " });
+        intLi.createEl("code", { text: "Pierwsze uruchomienie — to normalne" });
+      }
+    } else {
+      this.checks.integrity = false;
+      intLi.className = "kms-health-fail";
+      intLi.empty();
+      intLi.createSpan({ text: "— " });
+      intLi.createSpan({ text: "Integralność systemu: " });
+      intLi.createEl("code", { text: "Pomiń — najpierw napraw powyższe" });
+    }
+
+    const allOk = this.checks.python && this.checks.config;
+    if (!allOk) {
+      const hint = body.createDiv({ cls: "kms-wizard-fix-hint" });
+      hint.createEl("p", { text: "Popraw problemy powyżej, albo ustaw ścieżki w ustawieniach pluginu:" });
+      const fixBtn = hint.createEl("button", { text: "Otwórz ustawienia", cls: "mod-cta" });
+      fixBtn.addEventListener("click", () => {
+        this.close();
+        this.app.setting.open();
+        this.app.setting.openTabById("kms-review");
       });
     }
 
-    const btnRow = contentEl.createDiv({ cls: "kms-health-actions" });
-    const settingsBtn = btnRow.createEl("button", { text: "Otwórz ustawienia", cls: "mod-cta" });
-    settingsBtn.addEventListener("click", () => {
-      this.close();
-      this.app.setting.open();
-      this.app.setting.openTabById("kms-review");
+    this._navButtons(body, { showBack: true, nextLabel: allOk ? "Dalej →" : "Dalej mimo to →" });
+  }
+
+  // ── Step 2: Inbox ──
+  _stepInbox(body) {
+    body.createEl("h3", { text: "Twój Inbox" });
+
+    const inboxPath = "00_Inbox";
+    const inboxFolder = this.app.vault.getAbstractFileByPath(inboxPath);
+    let fileCount = 0;
+    if (inboxFolder && inboxFolder.children) {
+      fileCount = inboxFolder.children.filter((f) => !f.name.startsWith(".") && f.extension).length;
+    }
+    this.inboxCount = fileCount;
+
+    if (fileCount > 0) {
+      body.createEl("p", { cls: "kms-wizard-good", text: `Znaleziono ${fileCount} plików w 00_Inbox/. Możesz uruchomić pierwszy skan.` });
+    } else {
+      body.createEl("p", { text: "00_Inbox/ jest pusty. Wrzuć tam pliki, które chcesz przetworzyć:" });
+      const tips = body.createEl("ul", { cls: "kms-wizard-features" });
+      tips.createEl("li", { text: "Pliki PDF (artykuły, materiały)" });
+      tips.createEl("li", { text: "Pliki Markdown (notatki, fragmenty)" });
+      tips.createEl("li", { text: "Eksporty czatów z Claude/ChatGPT" });
+
+      body.createEl("p", { cls: "kms-wizard-hint", text: 'Możesz też uruchomić skan później \u2014 Ctrl+P \u2192 "KMS: Refresh review queue".' });
+    }
+
+    this._navButtons(body, {
+      showBack: true,
+      nextLabel: fileCount > 0 ? "Uruchom skan →" : "Zakończ",
+      nextAction: fileCount > 0 ? () => { this.step = 3; this._renderStep(); } : () => this._finish(),
     });
-    const closeBtn = btnRow.createEl("button", { text: "Zamknij" });
-    closeBtn.addEventListener("click", () => this.close());
+  }
+
+  // ── Step 3: First pipeline run ──
+  async _stepFirstRun(body) {
+    body.createEl("h3", { text: "Pierwszy skan" });
+    body.createEl("p", { text: `Skanuję ${this.inboxCount} plików z Inboxu, tworzę propozycje i generuję dashboard.` });
+
+    const progress = body.createEl("ul", { cls: "kms-progress-list" });
+    const steps = [
+      { label: "Skanowanie inboxu", cmd: "scan_inbox" },
+      { label: "Generowanie propozycji", cmd: "make_review_queue" },
+      { label: "Aktualizacja dashboardu", cmd: "generate_dashboard" },
+    ];
+
+    const lis = [];
+    for (const s of steps) {
+      const li = progress.createEl("li", { cls: "kms-progress-step kms-step-pending" });
+      li.createSpan({ cls: "kms-progress-icon", text: "○" });
+      li.createSpan({ cls: "kms-progress-label", text: s.label });
+      li.createSpan({ cls: "kms-progress-time" });
+      lis.push(li);
+    }
+
+    const footer = body.createDiv({ cls: "kms-wizard-footer" });
+    const python = this.plugin._getPython();
+    const projectRoot = this.plugin._getProjectRoot();
+
+    let failed = false;
+    for (let i = 0; i < steps.length; i++) {
+      const li = lis[i];
+      li.className = "kms-progress-step kms-step-running";
+      li.querySelector(".kms-progress-icon").textContent = "◉";
+      const start = Date.now();
+      try {
+        await this.plugin._exec(`"${python}" -m kms.scripts.${steps[i].cmd}`, projectRoot);
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+        li.className = "kms-progress-step kms-step-done";
+        li.querySelector(".kms-progress-icon").textContent = "✓";
+        li.querySelector(".kms-progress-time").textContent = `${elapsed}s`;
+      } catch (err) {
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+        li.className = "kms-progress-step kms-step-error";
+        li.querySelector(".kms-progress-icon").textContent = "✗";
+        li.querySelector(".kms-progress-time").textContent = `${elapsed}s`;
+        footer.createEl("pre", { cls: "kms-progress-error-detail", text: err.message.slice(-400) });
+        failed = true;
+        break;
+      }
+    }
+
+    if (!failed) {
+      footer.createEl("p", { cls: "kms-wizard-good", text: "Gotowe! Otwórz review queue aby przejrzeć propozycje." });
+      const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
+      const openBtn = btnRow.createEl("button", { text: "Otwórz Review Queue", cls: "mod-cta" });
+      openBtn.addEventListener("click", () => {
+        this._finish();
+        this.plugin._openFile(REVIEW_QUEUE_FILENAME);
+      });
+      const dashBtn = btnRow.createEl("button", { text: "Otwórz Dashboard" });
+      dashBtn.addEventListener("click", () => {
+        this._finish();
+        this.plugin._openFile(DASHBOARD_FILENAME);
+      });
+    } else {
+      const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
+      const retryBtn = btnRow.createEl("button", { text: "Spróbuj ponownie", cls: "mod-cta" });
+      retryBtn.addEventListener("click", () => { this.step = 3; this._renderStep(); });
+      const skipBtn = btnRow.createEl("button", { text: "Zakończ mimo to" });
+      skipBtn.addEventListener("click", () => this._finish());
+    }
+  }
+
+  // ── Helpers ──
+  _checkItem(list, ok, label, detail) {
+    const cls = ok === null ? "kms-health-pending" : ok ? "kms-health-ok" : "kms-health-fail";
+    const icon = ok === null ? "… " : ok ? "✓ " : "✗ ";
+    const li = list.createEl("li", { cls });
+    li.createSpan({ text: icon });
+    li.createSpan({ text: `${label}: ` });
+    li.createEl("code", { text: detail });
+    return li;
+  }
+
+  _navButtons(body, { showBack = true, nextLabel = "Dalej →", nextAction = null }) {
+    const row = body.createDiv({ cls: "kms-wizard-actions" });
+    if (showBack) {
+      const back = row.createEl("button", { text: "← Wstecz" });
+      back.addEventListener("click", () => { this.step--; this._renderStep(); });
+    }
+    const skipBtn = row.createEl("button", { text: "Pomiń" });
+    skipBtn.addEventListener("click", () => this._finish());
+    const next = row.createEl("button", { text: nextLabel, cls: "mod-cta" });
+    next.addEventListener("click", nextAction || (() => { this.step++; this._renderStep(); }));
+  }
+
+  async _finish() {
+    this.plugin.settings.onboardingDone = true;
+    await this.plugin.saveSettings();
+    this.close();
+    this.plugin._reloadKmsViews();
+    this.plugin._refreshPanel();
   }
 
   onClose() { this.contentEl.empty(); }

@@ -687,14 +687,105 @@
 }
 
 /* ════════════════════════════════════════════════ */
-/* Health Check Modal                               */
+/* Onboarding Wizard                                */
 /* ════════════════════════════════════════════════ */
 
-.kms-health-modal {
-  max-width: min(500px, 90vw);
-  width: 500px;
+.kms-wizard-modal {
+  max-width: min(560px, 90vw);
+  width: 560px;
 }
 
+/* Step indicator */
+.kms-wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.kms-wizard-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  font-weight: 700;
+  border: 2px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  background: var(--background-primary);
+  flex-shrink: 0;
+}
+
+.kms-wizard-dot.active {
+  border-color: var(--interactive-accent);
+  background: var(--interactive-accent);
+  color: white;
+}
+
+.kms-wizard-dot.done {
+  border-color: var(--kms-approve);
+  background: var(--kms-approve-bg);
+  color: var(--kms-approve);
+}
+
+.kms-wizard-dot-line {
+  width: 24px;
+  height: 2px;
+  background: var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+/* Body */
+.kms-wizard-body { padding: 4px 0; }
+.kms-wizard-body h3 { margin: 0 0 8px 0; }
+.kms-wizard-body p { margin: 6px 0; font-size: 0.92em; }
+
+.kms-wizard-features {
+  padding-left: 20px;
+  margin: 10px 0;
+}
+.kms-wizard-features li {
+  margin: 4px 0;
+  font-size: 0.9em;
+}
+
+.kms-wizard-hint {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.kms-wizard-good {
+  color: var(--kms-approve);
+  font-weight: 600;
+}
+
+.kms-wizard-fix-hint {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.kms-wizard-fix-hint p { margin: 0 0 8px 0; }
+
+/* Nav buttons */
+.kms-wizard-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.kms-wizard-footer { margin-top: 12px; }
+
+/* Health check (reused in wizard step 2) */
 .kms-health-list {
   list-style: none;
   padding: 0;
@@ -718,18 +809,9 @@
   background: var(--kms-reject-bg);
 }
 
-.kms-health-hint {
-  font-size: 0.85em;
+.kms-health-pending {
   color: var(--text-muted);
-  font-style: italic;
-  margin: 8px 0;
-}
-
-.kms-health-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
+  background: var(--background-modifier-hover);
 }
 
 /* ════════════════════════════════════════════════ */

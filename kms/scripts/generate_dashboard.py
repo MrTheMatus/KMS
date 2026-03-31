@@ -218,6 +218,7 @@ def main() -> int:
         "### Zaawansowane",
         "- **Ctrl+P** → `KMS: Revert applied proposal` — cofnij zastosowaną propozycję (ID)",
         "- **Ctrl+P** → `KMS: Revert batch` — cofnij całą operację batch (UUID)",
+        "- **Ctrl+P** → `KMS: Run setup wizard` — ponownie uruchom kreator konfiguracji",
         "",
         "---",
         f"*Wygenerowano automatycznie przez `generate_dashboard.py` — {now}*",
