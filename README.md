@@ -69,7 +69,6 @@ Pełna lista z opcjami: [docs/cli.md](docs/cli.md).
 | [docs/architecture.md](docs/architecture.md) | Cel, non-goals, komponenty, diagramy, DoD |
 | [docs/workflow.md](docs/workflow.md) | Codzienna praca |
 | [docs/cli.md](docs/cli.md) | CLI: komendy, config, cron |
-| [docs/gateway.md](docs/gateway.md) | Opcjonalny HTTP gateway (za VPN) |
 | [docs/continuity.md](docs/continuity.md) | Knowledge continuity |
 | [docs/testing-baseline.md](docs/testing-baseline.md) | 2-tygodniowy plan testów |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records |

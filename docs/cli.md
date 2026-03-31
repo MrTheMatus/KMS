@@ -1,7 +1,7 @@
 # KMS — przewodnik CLI i konfiguracji
 
 Jedno miejsce na **komendy**, **pliki konfiguracyjne**, **AnythingLLM / indeksowanie**, **cron** i **review**.  
-Kolejność rozwoju narzędzia (zgodnie z roadmapą): **CLI → (później) TUI / lekki web** — patrz też [gateway.md](gateway.md).
+Kolejność rozwoju narzędzia (zgodnie z roadmapą): **CLI → plugin Obsidian**.
 
 ## Wymagania wstępne
 
@@ -106,7 +106,7 @@ Gotowy **System Prompt**, temperatura, historia czatu i tekst odmowy „query mo
 | `sync_to_anythingllm` | Upload + `update-embeddings` dla niesyncowanych artefaktów | tak |
 | `convert_pdf_to_markdown` | PDF → MD (inbox lub `--input`) | tak |
 | `convert_conversation` | Surowa rozmowa/czat → source-note w `00_Inbox/` z `source_type: conversation` (`--input` **lub** `--batch-dir`, `--title` tylko przy pojedynczym pliku, opcjonalnie `--invoke-anythingllm`) | tak |
-| `ollama_pull_models` | Pomocniczo: `ollama pull` (osobny parser; `--models` lub `OLLAMA_MODELS`) | — |
+| `list_batches` | Lista operacji batch w formacie JSON (`--active-only`, `--limit`) | — (read-only) |
 
 **Powłoki (repozytorium):**
 
@@ -116,16 +116,6 @@ Gotowy **System Prompt**, temperatura, historia czatu i tekst odmowy „query mo
 | `scripts/generate_knowledge_seed.py` | Notatki `type: permanent-note` z `status: inbox` → `00_Inbox/seed/**` (`python scripts/generate_knowledge_seed.py`) |
 | `scripts/ingest_conversations.py` | Folder `*.pdf` (eksporty czatów) → Markdown w `00_Inbox/conversations/` (`--source-dir`, `--target-dir`, `--max-size-mb` [domyślnie **bez limitu**], `--dry-run`, opcjonalnie `--config` dla audytu) |
 | `kms/scripts/backup.sh` | Backup vault (+ SQLite wg configu) |
-
-**Gateway (HTTP, nie `kms.scripts`):**
-
-```bash
-export PYTHONPATH=.
-export KMS_GATEWAY_TOKEN="$(openssl rand -hex 32)"
-.venv/bin/python -m kms.gateway.server
-```
-
-Szczegóły: [gateway.md](gateway.md).
 
 ---
 
