@@ -1,7 +1,8 @@
-"""Revert a successful apply for one proposal: restore files from execution snapshot, remove artifact/execution rows."""
+"""Revert applied proposals: single proposal or entire batch."""
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -10,7 +11,7 @@ from typing import Any
 
 from kms.app.anythingllm_client import AnythingLLMClient
 from kms.app.config import abs_path, vault_paths
-from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts, utc_now_iso
+from kms.app.db import audit, connect, create_batch, ensure_schema, fetch_all_dicts, utc_now_iso
 from kms.app.execution_snapshot import parse_snapshot_json
 from kms.app.lifecycle import recompute_lifecycle
 from kms.app.paths import project_root
@@ -21,14 +22,21 @@ _LOG = logging.getLogger(__name__)
 
 def main() -> int:
     p = build_parser(
-        "Revert apply for one proposal: move file back, remove created source note, drop artifact/execution."
+        "Revert applied proposals: single (--proposal-id) or entire batch (--batch-id)."
     )
     add_dry_run(p)
-    p.add_argument(
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument(
         "--proposal-id",
         type=int,
-        required=True,
-        help="Proposal id to revert (must have an execution snapshot from apply)",
+        default=None,
+        help="Single proposal id to revert",
+    )
+    g.add_argument(
+        "--batch-id",
+        type=str,
+        default=None,
+        help="Batch UUID — revert all proposals applied in that batch",
     )
     args = p.parse_args()
     cfg = load_setup_logging(args)
@@ -40,7 +48,80 @@ def main() -> int:
     conn = connect(db_path)
     ensure_schema(conn, schema_path)
 
-    pid = args.proposal_id
+    if args.batch_id:
+        return _revert_batch(conn, cfg, vp, vault, args.batch_id, dry_run=args.dry_run)
+    else:
+        code = _revert_one(conn, cfg, vp, vault, args.proposal_id, dry_run=args.dry_run)
+        recompute_lifecycle(conn)
+        conn.close()
+        return code
+
+
+def _revert_batch(conn, cfg, vp, vault, batch_id: str, *, dry_run: bool) -> int:
+    """Revert all proposals belonging to a batch."""
+    # Validate batch exists
+    batches = fetch_all_dicts(conn, "SELECT * FROM batches WHERE id = ?", (batch_id,))
+    if not batches:
+        _LOG.error("Batch %s not found", batch_id)
+        conn.close()
+        return 2
+    batch = batches[0]
+    if batch.get("reverted_at"):
+        _LOG.error("Batch %s already reverted at %s", batch_id, batch["reverted_at"])
+        conn.close()
+        return 2
+
+    # Find all executions in this batch
+    execs = fetch_all_dicts(
+        conn,
+        "SELECT proposal_id FROM executions WHERE batch_id = ? AND reverted_at IS NULL",
+        (batch_id,),
+    )
+    if not execs:
+        _LOG.error("No active executions found for batch %s", batch_id)
+        conn.close()
+        return 2
+
+    pids = [e["proposal_id"] for e in execs]
+    _LOG.info("Batch %s: reverting %d proposals: %s", batch_id[:8], len(pids), pids)
+
+    if dry_run:
+        for pid in pids:
+            _LOG.info("dry-run: would revert proposal %s", pid)
+        conn.close()
+        return 0
+
+    # Create a revert batch for audit trail
+    revert_batch_id = create_batch(
+        conn, "revert_batch",
+        f"Revert batch {batch_id[:8]} ({len(pids)} proposals)",
+        len(pids),
+    )
+
+    failed = 0
+    for pid in pids:
+        code = _revert_one(conn, cfg, vp, vault, pid, dry_run=False, revert_batch_id=revert_batch_id)
+        if code != 0:
+            _LOG.error("Failed to revert proposal %s (continuing with remaining)", pid)
+            failed += 1
+
+    # Mark original batch as reverted
+    conn.execute(
+        "UPDATE batches SET reverted_at = ? WHERE id = ?",
+        (utc_now_iso(), batch_id),
+    )
+    conn.commit()
+
+    recompute_lifecycle(conn)
+    conn.close()
+
+    reverted = len(pids) - failed
+    _LOG.info("Batch revert complete: %d/%d proposals reverted", reverted, len(pids))
+    return 3 if failed else 0
+
+
+def _revert_one(conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_id: str | None = None) -> int:
+    """Revert a single proposal. Returns 0 on success."""
     rows = fetch_all_dicts(
         conn,
         """SELECT e.id AS execution_id, e.snapshot_json,
@@ -53,7 +134,6 @@ def main() -> int:
     )
     if not rows:
         _LOG.error("No execution+artifact for proposal_id=%s (nothing to revert)", pid)
-        conn.close()
         return 2
 
     row = rows[0]
@@ -61,13 +141,11 @@ def main() -> int:
         snap = parse_snapshot_json(row["snapshot_json"])
     except (ValueError, OSError) as e:
         _LOG.error("Invalid snapshot: %s", e)
-        conn.close()
         return 2
 
     moves = snap.get("moves") or []
     if not moves:
         _LOG.error("Snapshot has no moves")
-        conn.close()
         return 2
     m0 = moves[0]
     src_rel = str(m0.get("from", ""))
@@ -77,26 +155,14 @@ def main() -> int:
     dest = vault / dest_rel
     src = vault / src_rel
 
-    if args.dry_run:
+    if dry_run:
         _LOG.info(
             "dry-run: would revert proposal %s: move %s -> %s, delete %s, drop artifact",
-            pid,
-            dest_rel,
-            src_rel,
-            created_paths,
+            pid, dest_rel, src_rel, created_paths,
         )
-        if str(row.get("index_status", "")).lower() == "ok":
-            loc = row.get("anythingllm_doc_location") or ""
-            if loc and cfg.get("anythingllm", {}).get("enabled"):
-                _LOG.info("dry-run: would call AnythingLLM remove_embeddings for location=%s", loc)
-            else:
-                _LOG.info(
-                    "dry-run: indexed but no stored doc location — may need manual removal in AnythingLLM UI"
-                )
-        conn.close()
         return 0
 
-    # Remove from AnythingLLM workspace index when we have the stored location (best-effort).
+    # Remove from AnythingLLM workspace index (best-effort).
     api_cfg = cfg.get("anythingllm", {})
     index_ok = str(row.get("index_status", "")).lower() == "ok"
     doc_loc = (row.get("anythingllm_doc_location") or "").strip()
@@ -110,48 +176,22 @@ def main() -> int:
             )
             try:
                 client.remove_embeddings([doc_loc])
-                audit(
-                    conn,
-                    "revert_apply",
-                    "proposal",
-                    str(pid),
-                    {"anythingllm_removed": True, "doc_location": doc_loc},
-                    None,
-                )
+                audit(conn, "revert_apply", "proposal", str(pid),
+                      {"anythingllm_removed": True, "doc_location": doc_loc}, None,
+                      batch_id=revert_batch_id)
             except Exception as exc:  # noqa: BLE001
                 _LOG.warning("AnythingLLM remove_embeddings failed (continuing revert): %s", exc)
-                audit(
-                    conn,
-                    "revert_apply",
-                    "proposal",
-                    str(pid),
-                    {"anythingllm_remove_failed": True, "doc_location": doc_loc},
-                    str(exc),
-                )
+                audit(conn, "revert_apply", "proposal", str(pid),
+                      {"anythingllm_remove_failed": True, "doc_location": doc_loc}, str(exc),
+                      batch_id=revert_batch_id)
         else:
-            audit(
-                conn,
-                "revert_apply",
-                "proposal",
-                str(pid),
-                {
-                    "anythingllm_manual": True,
-                    "reason": "missing API key env",
-                },
-                None,
-            )
+            audit(conn, "revert_apply", "proposal", str(pid),
+                  {"anythingllm_manual": True, "reason": "missing API key env"}, None,
+                  batch_id=revert_batch_id)
     elif index_ok and not doc_loc:
-        audit(
-            conn,
-            "revert_apply",
-            "proposal",
-            str(pid),
-            {
-                "anythingllm_manual": True,
-                "reason": "no anythingllm_doc_location on artifact (sync before this column existed)",
-            },
-            None,
-        )
+        audit(conn, "revert_apply", "proposal", str(pid),
+              {"anythingllm_manual": True, "reason": "no doc_location on artifact"}, None,
+              batch_id=revert_batch_id)
 
     for rel in created_paths:
         pth = vault / rel
@@ -160,10 +200,9 @@ def main() -> int:
             _LOG.info("Removed created file %s", rel)
 
     if dest.is_file():
-        ensure_parent(src)
+        _ensure_parent(src)
         if src.exists():
             _LOG.error("Revert blocked: source path already exists: %s", src)
-            conn.close()
             return 3
         shutil.move(str(dest), str(src))
         _LOG.info("Moved %s -> %s", dest_rel, src_rel)
@@ -177,21 +216,16 @@ def main() -> int:
         (src_rel, utc_now_iso(), pid),
     )
     audit(
-        conn,
-        "revert_apply",
-        "proposal",
-        str(pid),
+        conn, "revert_apply", "proposal", str(pid),
         {"reverted": {"from": dest_rel, "to": src_rel}, "created_removed": created_paths},
-        None,
+        None, batch_id=revert_batch_id,
     )
     conn.commit()
-    recompute_lifecycle(conn)
-    conn.close()
     _LOG.info("Reverted proposal %s", pid)
     return 0
 
 
-def ensure_parent(p: Path) -> None:
+def _ensure_parent(p: Path) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
 
 

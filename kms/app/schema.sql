@@ -54,13 +54,24 @@ CREATE TABLE IF NOT EXISTS executions (
   applied_at TEXT NOT NULL,
   reverted_at TEXT,
   snapshot_json TEXT NOT NULL,
-  result_json TEXT
+  result_json TEXT,
+  batch_id TEXT REFERENCES batches(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_executions_proposal ON executions(proposal_id);
 
 CREATE INDEX IF NOT EXISTS idx_artifacts_item ON artifacts(item_id);
 CREATE INDEX IF NOT EXISTS idx_artifacts_proposal ON artifacts(proposal_id);
+
+-- Batch groups link related operations (e.g. all proposals applied in one run).
+CREATE TABLE IF NOT EXISTS batches (
+  id TEXT PRIMARY KEY,               -- UUID
+  action TEXT NOT NULL,              -- 'apply_decisions', 'bulk_approve', etc.
+  description TEXT,
+  proposal_count INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  reverted_at TEXT
+);
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +80,9 @@ CREATE TABLE IF NOT EXISTS audit_log (
   entity_type TEXT,
   entity_id TEXT,
   payload_json TEXT,
-  error_message TEXT
+  error_message TEXT,
+  batch_id TEXT REFERENCES batches(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts);
+CREATE INDEX IF NOT EXISTS idx_audit_batch ON audit_log(batch_id);

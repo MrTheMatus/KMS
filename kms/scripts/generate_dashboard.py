@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from kms.app.config import abs_path, vault_paths
@@ -63,10 +64,29 @@ def main() -> int:
     )
     index_counts = {r["index_status"]: r["cnt"] for r in index_stats}
 
-    # --- Recent audit entries ---
-    recent_audit = fetch_all_dicts(
+    # --- Recent audit entries (24h + 7d) ---
+    now_dt = datetime.now(timezone.utc)
+    ts_24h = (now_dt - timedelta(hours=24)).replace(microsecond=0).isoformat()
+    ts_7d = (now_dt - timedelta(days=7)).replace(microsecond=0).isoformat()
+
+    audit_24h = fetch_all_dicts(
         conn,
-        "SELECT ts, action, entity_type, payload_json FROM audit_log ORDER BY ts DESC LIMIT 10",
+        """SELECT ts, action, entity_type, entity_id, batch_id
+           FROM audit_log WHERE ts >= ? ORDER BY ts DESC""",
+        (ts_24h,),
+    )
+    audit_7d = fetch_all_dicts(
+        conn,
+        """SELECT ts, action, entity_type, entity_id, batch_id
+           FROM audit_log WHERE ts >= ? AND ts < ? ORDER BY ts DESC LIMIT 30""",
+        (ts_7d, ts_24h),
+    )
+
+    # --- Recent batches ---
+    recent_batches = fetch_all_dicts(
+        conn,
+        """SELECT id, action, description, proposal_count, created_at, reverted_at
+           FROM batches ORDER BY created_at DESC LIMIT 10""",
     )
 
     # --- Domain breakdown ---
@@ -138,27 +158,66 @@ def main() -> int:
             lines.append(f"| {domain} | {cnt} |")
         lines.append("")
 
-    # Recent activity
-    if recent_audit:
+    # Recent activity — 24h
+    if audit_24h:
         lines.extend([
-            "## Ostatnie akcje",
+            "## Ostatnie akcje (24h)",
             "",
         ])
-        for entry in recent_audit[:8]:
-            ts = (entry["ts"] or "")[:16].replace("T", " ")
-            action = entry["action"] or ""
-            etype = entry["entity_type"] or ""
-            lines.append(f"- `{ts}` — **{action}** ({etype})")
+        for entry in audit_24h[:15]:
+            lines.append(_format_audit_line(entry))
         lines.append("")
 
-    # Quick actions (for PO reference)
+    # 7-day history (collapsible)
+    if audit_7d:
+        lines.extend([
+            "<details>",
+            "<summary><strong>Wcześniejsze akcje (7 dni)</strong></summary>",
+            "",
+        ])
+        for entry in audit_7d[:30]:
+            lines.append(_format_audit_line(entry))
+        lines.extend(["", "</details>", ""])
+
+    # Batch history
+    if recent_batches:
+        lines.extend([
+            "## Operacje batch",
+            "",
+            "| ID (skrót) | Akcja | Propozycji | Data | Status |",
+            "|------------|-------|-----------|------|--------|",
+        ])
+        for b in recent_batches:
+            short_id = (b["id"] or "")[:8]
+            action = b["action"] or ""
+            count = b.get("proposal_count", 0)
+            ts = (b["created_at"] or "")[:16].replace("T", " ")
+            status = "cofnięty" if b.get("reverted_at") else "aktywny"
+            lines.append(f"| `{short_id}` | {action} | {count} | {ts} | {status} |")
+        lines.append("")
+
+    # Quick actions — all plugin functionalities
     lines.extend([
         "## Szybkie akcje",
         "",
-        "- **Ctrl+P** → `KMS: Refresh review queue` — skan inboxa + AI streszczenia",
-        "- **Ctrl+P** → `KMS: Apply decisions` — zastosuj zatwierdzone propozycje",
+        "### Pipeline",
+        "- **Ctrl+P** → `KMS: Refresh review queue` — skan inboxa + AI streszczenia + dashboard",
+        "- **Ctrl+P** → `KMS: Apply decisions` — zastosuj zatwierdzone propozycje (z batch tracking)",
+        "- **Ctrl+P** → `KMS: Retriage all proposals` — re-klasyfikacja domen/tematów przez LLM",
+        "",
+        "### Bulk",
         "- **Ctrl+P** → `KMS: Approve all pending` — zatwierdź wszystkie oczekujące",
-        "- **Ctrl+P** → `KMS: Open review queue` — otwórz kolejkę",
+        "- **Ctrl+P** → `KMS: Reject all pending` — odrzuć wszystkie oczekujące",
+        "",
+        "### Nawigacja",
+        "- **Ctrl+P** → `KMS: Open review queue` — otwórz kolejkę przeglądu",
+        "- **Ctrl+P** → `KMS: Open dashboard` — otwórz dashboard",
+        "- **Ctrl+P** → `KMS: Open control panel` — panel sterowania (sidebar)",
+        "- **Ctrl+P** → `KMS: Search proposals` — wyszukaj propozycje po tekście/domenie",
+        "",
+        "### Zaawansowane",
+        "- **Ctrl+P** → `KMS: Revert applied proposal` — cofnij zastosowaną propozycję (ID)",
+        "- **Ctrl+P** → `KMS: Revert batch` — cofnij całą operację batch (UUID)",
         "",
         "---",
         f"*Wygenerowano automatycznie przez `generate_dashboard.py` — {now}*",
@@ -171,6 +230,20 @@ def main() -> int:
     _LOG.info("Dashboard written to %s", dashboard_path)
     print(str(dashboard_path))
     return 0
+
+
+def _format_audit_line(entry: dict) -> str:
+    """Format one audit_log entry as a markdown bullet."""
+    ts = (entry["ts"] or "")[:16].replace("T", " ")
+    action = entry["action"] or ""
+    etype = entry["entity_type"] or ""
+    eid = entry.get("entity_id") or ""
+    # For file-type entities, show just the filename rather than full path
+    if "/" in eid:
+        eid = eid.rsplit("/", 1)[-1]
+    batch_tag = " `batch`" if entry.get("batch_id") else ""
+    id_part = f" #{eid}" if eid else ""
+    return f"- `{ts}` — **{action}** ({etype}{id_part}){batch_tag}"
 
 
 def _domain_breakdown(conn) -> list[tuple[str, int]]:

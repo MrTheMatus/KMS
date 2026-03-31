@@ -1,22 +1,22 @@
 """Create proposals for new items and regenerate review-queue.md (Etap 2).
 
-Supports optional AI summaries via Ollama (preferred) or AnythingLLM (--ai-summary flag).
+Supports:
+  --ai-summary    Generate AI summaries via unified LLM client
+  --retriage      Re-run domain/topic classification for ALL existing proposals
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from pathlib import Path
 
-from kms.app.anythingllm_client import AnythingLLMClient, anythingllm_chat_text_response
-from kms.app.config import abs_path, load_config, vault_paths
+from kms.app.config import abs_path, vault_paths
 from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts, utc_now_iso
 from kms.app.lifecycle import recompute_lifecycle
+from kms.app.llm_client import LLMClient, create_llm_client
 from kms.app.llm_triage import triage_against_permanent_notes
-from kms.app.ollama_client import OllamaClient
 from kms.app.paths import project_root
 from kms.app.review_queue import render_review_queue
 from kms.scripts._cli import add_dry_run, build_parser, load_setup_logging
@@ -44,7 +44,12 @@ def main() -> int:
     p.add_argument(
         "--ai-summary",
         action="store_true",
-        help="Use local LLM (Ollama/AnythingLLM) to generate concise AI summaries",
+        help="Use LLM to generate concise AI summaries for each proposal",
+    )
+    p.add_argument(
+        "--retriage",
+        action="store_true",
+        help="Re-run domain/topic classification for ALL existing proposals (uses LLM if available)",
     )
     args = p.parse_args()
     cfg = load_setup_logging(args)
@@ -55,12 +60,31 @@ def main() -> int:
     conn = connect(db_path)
     ensure_schema(conn, schema_path)
 
+    # ── Create unified LLM client (used for summaries, retriage, and new proposals) ──
+    llm: LLMClient | None = None
+    use_ai = getattr(args, "ai_summary", False) or getattr(args, "retriage", False)
+    if use_ai and not args.dry_run:
+        llm = create_llm_client(cfg)
+        if llm and llm.is_available():
+            _LOG.info("LLM client ready: %s", llm)
+        elif llm:
+            _LOG.warning("LLM endpoint not reachable (%s) — falling back to heuristic", llm.base_url)
+            llm = None
+        else:
+            _LOG.warning("No LLM configured — falling back to heuristic")
+
+    # ── Retriage: re-classify ALL proposals ──
+    if getattr(args, "retriage", False) and not args.dry_run:
+        _retriage_all(conn, vp, llm)
+
+    # ── Create proposals for NEW items ──
     now = utc_now_iso()
     items = fetch_all_dicts(
         conn,
         "SELECT * FROM items WHERE status IN ('new', 'pending') ORDER BY id",
     )
 
+    new_count = 0
     for it in items:
         existing = fetch_all_dicts(
             conn,
@@ -69,10 +93,14 @@ def main() -> int:
         )
         if not existing:
             action, target, reason = _suggest(it, vp)
+            source_text = _safe_read_text(vp["root"] / it["path"])
+            title = Path(it["path"]).stem.replace("_", " ").replace("-", " ")
             triage = triage_against_permanent_notes(
-                _safe_read_text(vp["root"] / it["path"]),
+                source_text,
                 vp["permanent_notes"],
                 provider=str(cfg.get("runtime", {}).get("llm_triage_provider", "heuristic")),
+                llm_client=llm,
+                title=title,
             )
             meta = {"original_path": it["path"], "triage": triage}
             conn.execute(
@@ -88,8 +116,12 @@ def main() -> int:
                     now,
                 ),
             )
+            new_count += 1
+    if new_count:
+        _LOG.info("Created %d new proposals", new_count)
     conn.commit()
 
+    # ── Build review-queue.md ──
     rows = fetch_all_dicts(
         conn,
         """SELECT p.id AS proposal_id, p.item_id, p.suggested_action, p.suggested_target,
@@ -105,16 +137,8 @@ def main() -> int:
            ORDER BY p.id""",
     )
 
-    # Set up LLM client for AI summaries: try Ollama first, then AnythingLLM
-    summarizer = None
     ai_summaries_count = 0
-    ai_backend = "none"
-    if getattr(args, "ai_summary", False) and not args.dry_run:
-        summarizer, ai_backend = _create_summarizer(cfg)
-        if summarizer:
-            _LOG.info("AI summaries enabled via %s", ai_backend)
-        else:
-            _LOG.warning("AI summaries requested but no LLM backend available — falling back to heuristic")
+    ai_backend = f"llm/{llm.model}" if llm else "none"
 
     blocks: list[dict] = []
     for row in rows:
@@ -123,9 +147,9 @@ def main() -> int:
 
         # Generate AI summary if available
         ai_summary = None
-        if summarizer:
+        if llm and getattr(args, "ai_summary", False):
             _LOG.info("Generating AI summary %d/%d: %s", len(blocks) + 1, len(rows), row["path"])
-            ai_summary = _generate_summary(summarizer, ai_backend, row, vp)
+            ai_summary = _generate_summary(llm, row, vp)
             if ai_summary:
                 ai_summaries_count += 1
 
@@ -178,6 +202,59 @@ def main() -> int:
     return 0
 
 
+# ── Retriage ────────────────────────────────────────────────────────
+
+
+def _retriage_all(
+    conn,
+    vp: dict[str, Path],
+    llm: LLMClient | None,
+) -> None:
+    """Re-run triage (domain/topic classification) for every proposal and update DB."""
+    rows = fetch_all_dicts(
+        conn,
+        "SELECT p.id, p.suggested_metadata_json, i.path FROM proposals p JOIN items i ON i.id = p.item_id",
+    )
+    _LOG.info("Retriage: updating %d proposals…", len(rows))
+    updated = 0
+    for idx, row in enumerate(rows):
+        source_text = _safe_read_text(vp["root"] / row["path"])
+        if not source_text:
+            continue
+
+        title = Path(row["path"]).stem.replace("_", " ").replace("-", " ")
+        new_triage = triage_against_permanent_notes(
+            source_text,
+            vp["permanent_notes"],
+            llm_client=llm,
+            title=title,
+        )
+
+        # Merge into existing metadata (preserve original_path etc.)
+        try:
+            meta = json.loads(row["suggested_metadata_json"] or "{}")
+        except Exception:  # noqa: BLE001
+            meta = {}
+        meta["triage"] = new_triage
+        meta.setdefault("original_path", row["path"])
+
+        conn.execute(
+            "UPDATE proposals SET suggested_metadata_json = ? WHERE id = ?",
+            (json.dumps(meta, ensure_ascii=False), row["id"]),
+        )
+        updated += 1
+
+        if (idx + 1) % 20 == 0:
+            _LOG.info("Retriage progress: %d/%d", idx + 1, len(rows))
+            conn.commit()
+
+    conn.commit()
+    _LOG.info("Retriage complete: %d/%d proposals updated", updated, len(rows))
+
+
+# ── Helpers ─────────────────────────────────────────────────────────
+
+
 def _suggest(it: dict, vp: dict[str, Path]) -> tuple[str, str | None, str]:
     path = Path(it["path"])
     suf = path.suffix.lower()
@@ -194,32 +271,8 @@ def _suggest(it: dict, vp: dict[str, Path]) -> tuple[str, str | None, str]:
     )
 
 
-def _create_summarizer(cfg: dict) -> tuple[OllamaClient | AnythingLLMClient | None, str]:
-    """Try Ollama first (local, no API key needed), then AnythingLLM."""
-    # 1) Try Ollama
-    ollama_cfg = cfg.get("ollama") or {}
-    base_url = str(ollama_cfg.get("base_url", "http://localhost:11434"))
-    model = str(ollama_cfg.get("model", "qwen2.5:14b"))
-    client = OllamaClient(base_url=base_url, model=model, timeout=90)
-    if client.is_available():
-        return client, f"ollama/{model}"
-
-    # 2) Try AnythingLLM
-    api_cfg = cfg.get("anythingllm") or {}
-    if api_cfg.get("enabled", False):
-        base = str(api_cfg.get("base_url", "http://localhost:3001")).rstrip("/")
-        slug = str(api_cfg.get("workspace_slug", "my-workspace"))
-        key_env = str(api_cfg.get("api_key_env", "ANYTHINGLLM_API_KEY"))
-        api_key = os.getenv(key_env, "").strip()
-        if api_key:
-            return AnythingLLMClient(base_url=base, api_key=api_key, workspace_slug=slug), "anythingllm"
-
-    return None, "none"
-
-
 def _generate_summary(
-    client: OllamaClient | AnythingLLMClient,
-    backend: str,
+    client: LLMClient,
     row: dict,
     vp: dict[str, Path],
 ) -> str | None:
@@ -233,31 +286,25 @@ def _generate_summary(
     prompt = _SUMMARY_PROMPT.format(title=title, content=content[:4000])
 
     try:
-        if isinstance(client, OllamaClient):
-            text = client.generate(prompt, system=_SUMMARY_SYSTEM).strip()
-        else:
-            data = client.workspace_chat(prompt, mode="chat", session_id=f"kms-summary-{row['proposal_id']}")
-            text = anythingllm_chat_text_response(data).strip()
-            if text.startswith("[AnythingLLM error:"):
-                return None
+        text = client.generate(prompt, system=_SUMMARY_SYSTEM).strip()
 
         if text and len(text) > 20:
-            # Strip CJK characters that Qwen sometimes injects
-            text = re.sub(r'[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+', '', text)
+            # Strip non-Latin scripts that Qwen sometimes injects (CJK, Cyrillic, Thai, etc.)
+            text = re.sub(r'[\u0400-\u04ff\u0500-\u052f]+', '', text)  # Cyrillic
+            text = re.sub(r'[\u0e00-\u0e7f]+', '', text)  # Thai
+            text = re.sub(r'[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+', '', text)  # CJK
             # Clean up leftover artifacts (double spaces, trailing colons, etc.)
             text = re.sub(r'\s{2,}', ' ', text).strip()
             text = re.sub(r'[：:]\s*$', '.', text)
             if len(text) > 20:
                 return text
     except Exception as exc:  # noqa: BLE001
-        _LOG.warning("AI summary failed for proposal %s (%s): %s", row["proposal_id"], backend, exc)
+        _LOG.warning("AI summary failed for proposal %s: %s", row["proposal_id"], exc)
     return None
 
 
 def _body_for_proposal(row: dict, vp: dict[str, Path], *, ai_summary: str | None = None) -> str:
     _ = vp
-    source_path = row["path"]
-    target_path = row["suggested_target"] or ""
     triage_data = _triage(row)
     domain = triage_data.get("suggested_domain", "")
     topics = triage_data.get("suggested_topics", [])
@@ -286,8 +333,8 @@ def _body_for_proposal(row: dict, vp: dict[str, Path], *, ai_summary: str | None
         "",
         f"**{summary_label}:** {summary_text}",
         "",
-        f"**Open source in Obsidian:** [[{source_path}]]",
-        f"**Open proposed target path:** [[{target_path}]]",
+        f"**Open source in Obsidian:** [[{row['path']}]]",
+        f"**Open proposed target path:** [[{row['suggested_target'] or ''}]]",
     ]
     return "\n".join(ln for ln in lines if ln is not None)
 

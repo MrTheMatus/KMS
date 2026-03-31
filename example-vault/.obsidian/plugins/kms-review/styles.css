@@ -1,6 +1,33 @@
 /* KMS Review Queue Plugin Styles */
 
-/* ── Main block container with full border ── */
+/* ── CSS Custom Properties (dark mode compatible) ── */
+:root {
+  --kms-approve: #4caf50;
+  --kms-approve-dark: #388e3c;
+  --kms-approve-bg: #4caf5022;
+  --kms-reject: #f44336;
+  --kms-reject-dark: #d32f2f;
+  --kms-reject-bg: #f4433622;
+  --kms-postpone: #ff9800;
+  --kms-postpone-dark: #f57c00;
+  --kms-postpone-bg: #ff980022;
+  --kms-action: var(--interactive-accent);
+  --kms-tag-bg: var(--background-modifier-hover);
+  --kms-tag-color: var(--text-muted);
+  --kms-tag-domain-bg: var(--background-modifier-hover);
+  --kms-tag-domain-color: var(--interactive-accent);
+}
+
+.theme-dark {
+  --kms-approve: #66bb6a;
+  --kms-approve-dark: #4caf50;
+  --kms-reject: #ef5350;
+  --kms-reject-dark: #f44336;
+  --kms-postpone: #ffa726;
+  --kms-postpone-dark: #ff9800;
+}
+
+/* ── Main block container ── */
 .kms-review-block {
   border: 1px solid var(--background-modifier-border);
   border-left: 4px solid var(--text-muted);
@@ -12,21 +39,21 @@
 
 /* ── Decision state colors ── */
 .kms-review-block.kms-decision-approve {
-  border-left-color: #4caf50;
-  border-color: #4caf5044;
-  border-left-color: #4caf50;
+  border-left-color: var(--kms-approve);
+  border-color: var(--kms-approve-bg);
+  border-left-color: var(--kms-approve);
 }
 
 .kms-review-block.kms-decision-reject {
-  border-left-color: #f44336;
-  border-color: #f4433644;
-  border-left-color: #f44336;
+  border-left-color: var(--kms-reject);
+  border-color: var(--kms-reject-bg);
+  border-left-color: var(--kms-reject);
 }
 
 .kms-review-block.kms-decision-postpone {
-  border-left-color: #ff9800;
-  border-color: #ff980044;
-  border-left-color: #ff9800;
+  border-left-color: var(--kms-postpone);
+  border-color: var(--kms-postpone-bg);
+  border-left-color: var(--kms-postpone);
 }
 
 .kms-review-block.kms-decision-pending {
@@ -62,6 +89,7 @@
   display: flex;
   gap: 8px;
   margin: 10px 0;
+  flex-wrap: wrap;
 }
 
 .kms-decision-btn {
@@ -81,22 +109,27 @@
   transform: translateY(-1px);
 }
 
+.kms-decision-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
 .kms-decision-btn.active-approve {
-  background: #4caf50;
+  background: var(--kms-approve);
   color: white;
-  border-color: #388e3c;
+  border-color: var(--kms-approve-dark);
 }
 
 .kms-decision-btn.active-reject {
-  background: #f44336;
+  background: var(--kms-reject);
   color: white;
-  border-color: #d32f2f;
+  border-color: var(--kms-reject-dark);
 }
 
 .kms-decision-btn.active-postpone {
-  background: #ff9800;
+  background: var(--kms-postpone);
   color: white;
-  border-color: #f57c00;
+  border-color: var(--kms-postpone-dark);
 }
 
 /* ── Review note input ── */
@@ -121,12 +154,6 @@
   outline: none;
 }
 
-/* ── Separator between controls and body ── */
-.kms-review-separator {
-  border-top: 1px solid var(--background-modifier-border);
-  margin: 12px 0 8px 0;
-}
-
 /* ── Body content area ── */
 .kms-review-body {
   font-size: 0.9em;
@@ -134,30 +161,17 @@
   color: var(--text-normal);
 }
 
-.kms-review-body p {
-  margin: 4px 0;
-}
-
-.kms-review-body strong {
-  color: var(--text-normal);
-}
-
+.kms-review-body p { margin: 4px 0; }
+.kms-review-body strong { color: var(--text-normal); }
 .kms-review-body code {
   font-size: 0.88em;
   padding: 1px 4px;
   border-radius: 3px;
   background: var(--background-primary);
 }
-
 .kms-review-body ol,
-.kms-review-body ul {
-  margin: 4px 0;
-  padding-left: 20px;
-}
-
-.kms-review-body li {
-  margin: 2px 0;
-}
+.kms-review-body ul { margin: 4px 0; padding-left: 20px; }
+.kms-review-body li { margin: 2px 0; }
 
 /* ── AI summary highlight ── */
 .kms-review-body .kms-ai-summary {
@@ -181,11 +195,651 @@
   font-size: 0.75em;
   padding: 1px 6px;
   border-radius: 3px;
+  background: var(--kms-tag-bg);
+  color: var(--kms-tag-color);
+}
+
+.kms-tag-domain {
+  background: var(--kms-tag-domain-bg);
+  color: var(--kms-tag-domain-color);
+}
+
+/* ════════════════════════════════════════════════ */
+/* Search Modal                                     */
+/* ════════════════════════════════════════════════ */
+
+.kms-search-modal {
+  max-width: min(700px, 90vw);
+  width: 700px;
+}
+
+.kms-search-modal h3 { margin-bottom: 12px; }
+
+.kms-search-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.kms-search-input {
+  flex: 1;
+  min-width: 150px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 1em;
+}
+
+.kms-search-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.kms-search-toggle {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kms-search-results {
+  max-height: 450px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.kms-search-hint,
+.kms-search-loading,
+.kms-search-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.kms-search-error {
+  color: var(--kms-reject);
+  padding: 10px 0;
+}
+
+.kms-search-count {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.kms-search-result {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.kms-search-result:hover {
+  background: var(--background-modifier-hover);
+}
+
+.kms-search-result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.kms-search-pid {
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.kms-search-decision {
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 3px;
+  margin-left: auto;
+  text-transform: uppercase;
+}
+
+.kms-search-decision.kms-decision-pending {
   background: var(--background-modifier-hover);
   color: var(--text-muted);
 }
 
-.kms-tag-domain {
-  background: #e3f2fd;
-  color: #1565c0;
+.kms-search-decision.kms-decision-approve {
+  background: var(--kms-approve-bg);
+  color: var(--kms-approve);
+}
+
+.kms-search-decision.kms-decision-reject {
+  background: var(--kms-reject-bg);
+  color: var(--kms-reject);
+}
+
+.kms-search-decision.kms-decision-postpone {
+  background: var(--kms-postpone-bg);
+  color: var(--kms-postpone);
+}
+
+.kms-search-path {
+  font-size: 0.82em;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.kms-search-topics {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.kms-search-summary {
+  font-size: 0.82em;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+/* ── Search action buttons ── */
+.kms-search-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.kms-search-action-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  font-size: 0.78em;
+  font-weight: 500;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.kms-search-action-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.kms-search-action-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.kms-action-goto {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
+.kms-action-source {
+  color: var(--text-muted);
+}
+
+.kms-action-detail {
+  color: var(--kms-action);
+  border-color: color-mix(in srgb, var(--kms-action), transparent 75%);
+}
+
+.kms-action-revert {
+  color: var(--kms-reject);
+  border-color: color-mix(in srgb, var(--kms-reject), transparent 75%);
+}
+
+.kms-action-revert:hover {
+  background: var(--kms-reject-bg);
+}
+
+/* ── Clickable proposal title ── */
+.kms-clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.kms-clickable:hover {
+  color: var(--interactive-accent);
+}
+
+/* ════════════════════════════════════════════════ */
+/* Detail Modal                                     */
+/* ════════════════════════════════════════════════ */
+
+.kms-detail-modal {
+  max-width: min(650px, 90vw);
+  width: 650px;
+}
+
+.kms-detail-modal h3 { margin-bottom: 12px; }
+
+.kms-detail-body {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.kms-detail-section { margin-bottom: 14px; }
+
+.kms-detail-section h4 {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 4px;
+}
+
+.kms-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88em;
+}
+
+.kms-detail-table tr {
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+
+.kms-detail-table tr:last-child { border-bottom: none; }
+
+.kms-detail-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 4px 12px 4px 0;
+  white-space: nowrap;
+  width: 1%;
+  vertical-align: top;
+}
+
+.kms-detail-value {
+  color: var(--text-normal);
+  padding: 4px 0;
+  word-break: break-word;
+  font-family: var(--font-monospace);
+  font-size: 0.92em;
+}
+
+.kms-detail-summary {
+  font-size: 0.85em;
+  color: var(--text-faint);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.kms-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════════ */
+/* Revert Modal                                     */
+/* ════════════════════════════════════════════════ */
+
+.kms-revert-modal {
+  max-width: min(500px, 90vw);
+  width: 500px;
+}
+
+.kms-revert-modal p {
+  font-size: 0.88em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.kms-revert-input-row { margin-bottom: 12px; }
+
+.kms-revert-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 1em;
+}
+
+.kms-revert-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.kms-revert-preview {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  min-height: 20px;
+}
+
+.kms-revert-btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════════ */
+/* Control Panel (sidebar view)                    */
+/* ════════════════════════════════════════════════ */
+
+.kms-panel {
+  padding: 8px 4px;
+}
+
+.kms-panel-title {
+  margin: 0 0 10px 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+/* ── Stats grid ── */
+.kms-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.kms-stat-card {
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.kms-stat-value {
+  font-size: 1.3em;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-normal);
+}
+
+.kms-stat-label {
+  font-size: 0.7em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.kms-stat-pending .kms-stat-value { color: var(--text-muted); }
+.kms-stat-approve .kms-stat-value { color: var(--kms-approve); }
+.kms-stat-applied .kms-stat-value { color: var(--interactive-accent); }
+.kms-stat-reject .kms-stat-value { color: var(--kms-reject); }
+.kms-stat-postpone .kms-stat-value { color: var(--kms-postpone); }
+
+/* ── Domain breakdown ── */
+.kms-panel-domains { margin-bottom: 12px; }
+
+.kms-domain-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.82em;
+}
+
+.kms-domain-name {
+  flex: 0 0 auto;
+  min-width: 80px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kms-domain-bar-bg {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.kms-domain-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--interactive-accent);
+  min-width: 2px;
+}
+
+.kms-domain-count {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 20px;
+  text-align: right;
+}
+
+/* ── Sections & buttons ── */
+.kms-panel-section { margin-bottom: 10px; }
+
+.kms-panel-section-title {
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.kms-panel-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.kms-panel-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.kms-panel-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.kms-panel-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.kms-panel-btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ════════════════════════════════════════════════ */
+/* Health Check Modal                               */
+/* ════════════════════════════════════════════════ */
+
+.kms-health-modal {
+  max-width: min(500px, 90vw);
+  width: 500px;
+}
+
+.kms-health-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.kms-health-list li {
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+.kms-health-ok {
+  color: var(--kms-approve);
+  background: var(--kms-approve-bg);
+}
+
+.kms-health-fail {
+  color: var(--kms-reject);
+  background: var(--kms-reject-bg);
+}
+
+.kms-health-hint {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.kms-health-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════════ */
+/* Confirm Modal                                    */
+/* ════════════════════════════════════════════════ */
+
+.kms-confirm-modal {
+  max-width: min(400px, 90vw);
+  width: 400px;
+}
+
+.kms-confirm-modal p {
+  margin: 12px 0;
+  font-size: 0.95em;
+}
+
+.kms-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ════════════════════════════════════════════════ */
+/* Progress Modal                                   */
+/* ════════════════════════════════════════════════ */
+
+.kms-progress-modal {
+  max-width: min(500px, 90vw);
+  width: 500px;
+}
+
+.kms-progress-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.kms-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+}
+
+.kms-progress-icon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.kms-progress-label { flex: 1; }
+
+.kms-progress-time {
+  flex-shrink: 0;
+  font-size: 0.8em;
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+}
+
+.kms-step-pending { color: var(--text-muted); }
+.kms-step-running {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.kms-step-done {
+  color: var(--kms-approve);
+}
+.kms-step-error {
+  color: var(--kms-reject);
+  background: var(--kms-reject-bg);
+}
+
+.kms-progress-footer { margin-top: 12px; }
+
+.kms-progress-done {
+  font-weight: 600;
+  color: var(--kms-approve);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.kms-progress-error-title {
+  font-weight: 600;
+  color: var(--kms-reject);
+  margin-bottom: 6px;
+}
+
+.kms-progress-error-detail {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8em;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+}
+
+.kms-progress-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
 }

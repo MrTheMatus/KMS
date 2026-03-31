@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,7 @@ def ensure_schema(conn: sqlite3.Connection, schema_path: Path) -> None:
     if cur.fetchone() is None:
         init_schema(conn, schema_path)
     _migrate_columns(conn)
+    _ensure_batches(conn)
     _ensure_executions_table(conn)
     # Denormalized lifecycle cache on proposals (cheap for small DBs)
     from kms.app.lifecycle import recompute_lifecycle
@@ -83,12 +85,58 @@ def _ensure_executions_table(conn: sqlite3.Connection) -> None:
           applied_at TEXT NOT NULL,
           reverted_at TEXT,
           snapshot_json TEXT NOT NULL,
-          result_json TEXT
+          result_json TEXT,
+          batch_id TEXT REFERENCES batches(id)
         )"""
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_executions_proposal ON executions(proposal_id)"
     )
+    conn.commit()
+
+
+def _ensure_batches(conn: sqlite3.Connection) -> None:
+    """Create batches table and add batch_id columns to existing tables."""
+    cur = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='batches'"
+    )
+    if cur.fetchone() is None:
+        conn.execute(
+            """CREATE TABLE batches (
+              id TEXT PRIMARY KEY,
+              action TEXT NOT NULL,
+              description TEXT,
+              proposal_count INTEGER DEFAULT 0,
+              created_at TEXT NOT NULL,
+              reverted_at TEXT
+            )"""
+        )
+    if not _has_column(conn, "audit_log", "batch_id"):
+        conn.execute("ALTER TABLE audit_log ADD COLUMN batch_id TEXT REFERENCES batches(id)")
+    if not _has_column(conn, "executions", "batch_id"):
+        conn.execute("ALTER TABLE executions ADD COLUMN batch_id TEXT REFERENCES batches(id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_batch ON audit_log(batch_id)")
+    conn.commit()
+
+
+def create_batch(
+    conn: sqlite3.Connection,
+    action: str,
+    description: str | None = None,
+    proposal_count: int = 0,
+) -> str:
+    """Create a new batch group and return its UUID."""
+    batch_id = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO batches (id, action, description, proposal_count, created_at) VALUES (?, ?, ?, ?, ?)",
+        (batch_id, action, description, proposal_count, utc_now_iso()),
+    )
+    conn.commit()
+    return batch_id
+
+
+def update_batch_count(conn: sqlite3.Connection, batch_id: str, count: int) -> None:
+    conn.execute("UPDATE batches SET proposal_count = ? WHERE id = ?", (count, batch_id))
     conn.commit()
 
 
@@ -99,10 +147,11 @@ def audit(
     entity_id: str | None = None,
     payload: dict[str, Any] | None = None,
     error_message: str | None = None,
+    batch_id: str | None = None,
 ) -> None:
     conn.execute(
-        """INSERT INTO audit_log (ts, action, entity_type, entity_id, payload_json, error_message)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO audit_log (ts, action, entity_type, entity_id, payload_json, error_message, batch_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             utc_now_iso(),
             action,
@@ -110,6 +159,7 @@ def audit(
             entity_id,
             json.dumps(payload, ensure_ascii=False) if payload else None,
             error_message,
+            batch_id,
         ),
     )
     conn.commit()
