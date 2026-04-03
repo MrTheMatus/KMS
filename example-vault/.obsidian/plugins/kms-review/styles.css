@@ -775,6 +775,36 @@
 .kms-wizard-fix-hint p { margin: 0 0 8px 0; }
 
 /* Nav buttons */
+.kms-wizard-profiles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+.kms-wizard-profile-card {
+  padding: 12px 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.kms-wizard-profile-card:hover {
+  background: var(--background-modifier-hover);
+}
+.kms-wizard-profile-card.active {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+.kms-wizard-profile-card strong {
+  display: block;
+  margin-bottom: 2px;
+}
+.kms-wizard-profile-card p {
+  margin: 0;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
 .kms-wizard-actions {
   display: flex;
   gap: 8px;

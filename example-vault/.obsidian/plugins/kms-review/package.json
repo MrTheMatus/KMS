@@ -1,0 +1,12 @@
+{
+  "name": "kms-review",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0"
+  }
+}

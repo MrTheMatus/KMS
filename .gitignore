@@ -20,6 +20,9 @@ kms/backups/
 # Local config (keep config.example.yaml in repo)
 kms/config/config.yaml
 
+# Node (plugin build)
+node_modules/
+
 # OS
 .DS_Store
 
