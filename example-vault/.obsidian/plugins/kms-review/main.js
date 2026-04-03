@@ -439,7 +439,7 @@ module.exports = class KmsReviewPlugin extends Plugin {
     const steps = pipelines[mode];
     if (!steps) return;
 
-    const progress = new KmsProgressModal(this.app, mode, steps.map((s) => s.label));
+    const progress = new KmsProgressModal(this.app, this, mode, steps.map((s) => s.label));
     progress.open();
 
     for (let i = 0; i < steps.length; i++) {
@@ -472,7 +472,7 @@ module.exports = class KmsReviewPlugin extends Plugin {
       { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
     ];
 
-    const progress = new KmsProgressModal(this.app, "revert", steps.map((s) => s.label));
+    const progress = new KmsProgressModal(this.app, this, "revert", steps.map((s) => s.label));
     progress.open();
 
     for (let i = 0; i < steps.length; i++) {
@@ -1271,33 +1271,33 @@ class KmsBatchRevertModal extends Modal {
         item.createDiv({ cls: "kms-search-summary", text: `Created: ${(b.created_at || "").replace("T", " ").slice(0, 16)}` });
 
         const actions = item.createDiv({ cls: "kms-search-actions" });
-        const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: "Revert entire batch" });
+        const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: t("revertEntireBatch") });
 
         revertBtn.addEventListener("click", async () => {
           revertBtn.disabled = true;
           revertBtn.textContent = "Reverting...";
           try {
             const ok = await this.plugin._runRevertPipeline(
-              `Revert batch ${b.id.slice(0, 8)} (${b.proposal_count} proposals)`,
+              `${t("revertEntireBatch")} ${b.id.slice(0, 8)} (${b.proposal_count})`,
               `"${python}" -m kms.scripts.revert_apply --batch-id "${b.id}"`,
             );
             if (ok) {
-              new Notice(`Batch ${b.id.slice(0, 8)} reverted (${b.proposal_count} proposals).`);
+              new Notice(t("batchReverted", b.id.slice(0, 8), b.proposal_count));
               this.close();
             } else {
-              revertBtn.textContent = "Revert failed";
+              revertBtn.textContent = t("revertFailed");
               revertBtn.disabled = false;
             }
           } catch (err) {
-            revertBtn.textContent = "Revert failed";
-            new Notice(`Batch revert failed: ${err.message}`, 10000);
+            revertBtn.textContent = t("revertFailed");
+            new Notice(`${t("batchRevertFailed")} ${err.message}`, 10000);
             revertBtn.disabled = false;
           }
         });
       }
     } catch (err) {
       listEl.empty();
-      listEl.createEl("p", { cls: "kms-search-error", text: `Error loading batches: ${err.message}` });
+      listEl.createEl("p", { cls: "kms-search-error", text: `${t("batchRevertFailed")} ${err.message}` });
     }
   }
 
@@ -1316,12 +1316,13 @@ class KmsSettingsTab extends PluginSettingTab {
 
   display() {
     const { containerEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     containerEl.empty();
-    containerEl.createEl("h2", { text: "KMS Review — Ustawienia" });
+    containerEl.createEl("h2", { text: t("settingsTitle") });
 
     new Setting(containerEl)
-      .setName("Ścieżka Python")
-      .setDesc("Pełna ścieżka do interpretera Python (domyślnie: .venv/bin/python w katalogu projektu)")
+      .setName(t("settingPython"))
+      .setDesc(t("settingPythonDesc"))
       .addText((text) =>
         text
           .setPlaceholder(".venv/bin/python")
@@ -1333,8 +1334,8 @@ class KmsSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Katalog projektu")
-      .setDesc("Ścieżka do katalogu głównego KMS (domyślnie: katalog nadrzędny vaultu)")
+      .setName(t("settingProject"))
+      .setDesc(t("settingProjectDesc"))
       .addText((text) =>
         text
           .setPlaceholder("auto-detect")
@@ -1346,8 +1347,8 @@ class KmsSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Język interfejsu")
-      .setDesc("Język komunikatów w pluginie")
+      .setName(t("settingLang"))
+      .setDesc(t("settingLangDesc"))
       .addDropdown((dropdown) =>
         dropdown
           .addOption("pl", "Polski")
@@ -1362,8 +1363,8 @@ class KmsSettingsTab extends PluginSettingTab {
     containerEl.createEl("h3", { text: "AnythingLLM" });
 
     new Setting(containerEl)
-      .setName("Włącz AnythingLLM")
-      .setDesc("Integracja z AnythingLLM dla retrieval i Q&A")
+      .setName(t("settingAnythingLLM"))
+      .setDesc(t("settingAnythingLLMDesc"))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.anythingllmEnabled)
@@ -1374,8 +1375,8 @@ class KmsSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Workspace slug")
-      .setDesc("Nazwa workspace w AnythingLLM")
+      .setName(t("settingSlug"))
+      .setDesc(t("settingSlugDesc"))
       .addText((text) =>
         text
           .setPlaceholder("my-workspace")
@@ -1386,9 +1387,9 @@ class KmsSettingsTab extends PluginSettingTab {
           }),
       );
 
-    containerEl.createEl("h3", { text: "Pomoc" });
+    containerEl.createEl("h3", { text: t("settingHelp") });
     const helpLink = containerEl.createEl("p");
-    helpLink.innerHTML = 'Otwórz <code>docs/workflow.md</code> aby zobaczyć pełny opis pracy z KMS.';
+    helpLink.innerHTML = t("settingHelpText");
   }
 }
 
@@ -1413,10 +1414,11 @@ class KmsOnboardingWizard extends Modal {
 
   _renderStep() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.empty();
 
     // Step indicator
-    const steps = ["Witaj", "Środowisko", "Inbox", "Pierwszy skan"];
+    const steps = [t("wizStep1"), t("wizStep2"), t("wizStep3"), t("wizStep4")];
     const indicator = contentEl.createDiv({ cls: "kms-wizard-steps" });
     for (let i = 0; i < steps.length; i++) {
       const dot = indicator.createSpan({
@@ -1437,28 +1439,25 @@ class KmsOnboardingWizard extends Modal {
 
   // ── Step 0: Welcome ──
   _stepWelcome(body) {
-    body.createEl("h3", { text: "Witaj w KMS" });
-    body.createEl("p", { text: "KMS to system zarządzania wiedzą oparty o Obsidian. Pomaga uporządkować pliki z Inboxu — AI tworzy propozycje, Ty decydujesz." });
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("wizTitle") });
+    body.createEl("p", { text: t("wizIntro") });
 
     const features = body.createEl("ul", { cls: "kms-wizard-features" });
-    for (const f of [
-      "Wrzuć pliki do 00_Inbox/",
-      "Plugin skanuje, klasyfikuje i tworzy propozycje",
-      "Ty zatwierdzasz, odrzucasz lub odkładasz — jednym klikiem",
-      "Zatwierdzone trafiają do docelowych folderów, odrzucone do archiwum",
-    ]) {
+    for (const f of t("wizFeatures")) {
       features.createEl("li", { text: f });
     }
 
-    body.createEl("p", { cls: "kms-wizard-hint", text: "Ten kreator sprawdzi konfigurację i przeprowadzi Cię przez pierwszy skan." });
+    body.createEl("p", { cls: "kms-wizard-hint", text: t("wizHint") });
 
-    this._navButtons(body, { showBack: false, nextLabel: "Dalej →" });
+    this._navButtons(body, { showBack: false, nextLabel: t("next") });
   }
 
   // ── Step 1: Environment checks ──
   async _stepEnvironment(body) {
-    body.createEl("h3", { text: "Sprawdzanie środowiska" });
-    body.createEl("p", { text: "Weryfikuję czy wszystko jest gotowe do pracy." });
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("wizEnvTitle") });
+    body.createEl("p", { text: t("wizEnvIntro") });
 
     const list = body.createEl("ul", { cls: "kms-health-list" });
     const pythonPath = this.plugin._getPython();
@@ -1468,15 +1467,15 @@ class KmsOnboardingWizard extends Modal {
     // Check 1: Python
     const pythonOk = fs.existsSync(pythonPath);
     this.checks.python = pythonOk;
-    this._checkItem(list, pythonOk, "Python", pythonOk ? pythonPath : `Nie znaleziono: ${pythonPath}`);
+    this._checkItem(list, pythonOk, "Python", pythonOk ? pythonPath : `Not found: ${pythonPath}`);
 
     // Check 2: config.yaml
     const configOk = fs.existsSync(configPath);
     this.checks.config = configOk;
-    this._checkItem(list, configOk, "config.yaml", configOk ? "OK" : "Skopiuj config.example.yaml → config.yaml");
+    this._checkItem(list, configOk, "config.yaml", configOk ? t("wizEnvOk") : t("wizEnvFixConfig"));
 
     // Check 3: verify_integrity (async)
-    const intLi = this._checkItem(list, null, "Integralność systemu", "Sprawdzam...");
+    const intLi = this._checkItem(list, null, t("wizEnvIntegrity"), t("wizEnvChecking"));
     if (pythonOk && configOk) {
       try {
         const out = await this.plugin._exec(`"${pythonPath}" -m kms.scripts.verify_integrity --json`, projectRoot);
@@ -1484,31 +1483,31 @@ class KmsOnboardingWizard extends Modal {
         this.checks.integrity = ok;
         intLi.className = ok ? "kms-health-ok" : "kms-health-fail";
         intLi.empty();
-        intLi.createSpan({ text: ok ? "✓ " : "✗ " });
-        intLi.createSpan({ text: "Integralność systemu: " });
-        intLi.createEl("code", { text: ok ? "OK" : "Wymaga naprawy" });
+        intLi.createSpan({ text: ok ? "\u2713 " : "\u2717 " });
+        intLi.createSpan({ text: `${t("wizEnvIntegrity")}: ` });
+        intLi.createEl("code", { text: ok ? t("wizEnvOk") : t("wizEnvNeedsRepair") });
       } catch {
         this.checks.integrity = false;
         intLi.className = "kms-health-fail";
         intLi.empty();
-        intLi.createSpan({ text: "✗ " });
-        intLi.createSpan({ text: "Integralność systemu: " });
-        intLi.createEl("code", { text: "Pierwsze uruchomienie — to normalne" });
+        intLi.createSpan({ text: "\u2717 " });
+        intLi.createSpan({ text: `${t("wizEnvIntegrity")}: ` });
+        intLi.createEl("code", { text: t("wizEnvFirstRun") });
       }
     } else {
       this.checks.integrity = false;
       intLi.className = "kms-health-fail";
       intLi.empty();
-      intLi.createSpan({ text: "— " });
-      intLi.createSpan({ text: "Integralność systemu: " });
-      intLi.createEl("code", { text: "Pomiń — najpierw napraw powyższe" });
+      intLi.createSpan({ text: "\u2014 " });
+      intLi.createSpan({ text: `${t("wizEnvIntegrity")}: ` });
+      intLi.createEl("code", { text: t("wizEnvSkip") });
     }
 
     const allOk = this.checks.python && this.checks.config;
     if (!allOk) {
       const hint = body.createDiv({ cls: "kms-wizard-fix-hint" });
-      hint.createEl("p", { text: "Popraw problemy powyżej, albo ustaw ścieżki w ustawieniach pluginu:" });
-      const fixBtn = hint.createEl("button", { text: "Otwórz ustawienia", cls: "mod-cta" });
+      hint.createEl("p", { text: t("wizEnvFixHint") });
+      const fixBtn = hint.createEl("button", { text: t("wizOpenSettings"), cls: "mod-cta" });
       fixBtn.addEventListener("click", () => {
         this.close();
         this.app.setting.open();
@@ -1516,12 +1515,13 @@ class KmsOnboardingWizard extends Modal {
       });
     }
 
-    this._navButtons(body, { showBack: true, nextLabel: allOk ? "Dalej →" : "Dalej mimo to →" });
+    this._navButtons(body, { showBack: true, nextLabel: allOk ? t("next") : t("nextAnyway") });
   }
 
   // ── Step 2: Inbox ──
   _stepInbox(body) {
-    body.createEl("h3", { text: "Twój Inbox" });
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("wizInboxTitle") });
 
     const inboxPath = "00_Inbox";
     const inboxFolder = this.app.vault.getAbstractFileByPath(inboxPath);
@@ -1532,34 +1532,34 @@ class KmsOnboardingWizard extends Modal {
     this.inboxCount = fileCount;
 
     if (fileCount > 0) {
-      body.createEl("p", { cls: "kms-wizard-good", text: `Znaleziono ${fileCount} plików w 00_Inbox/. Możesz uruchomić pierwszy skan.` });
+      body.createEl("p", { cls: "kms-wizard-good", text: t("wizInboxFound", fileCount) });
     } else {
-      body.createEl("p", { text: "00_Inbox/ jest pusty. Wrzuć tam pliki, które chcesz przetworzyć:" });
+      body.createEl("p", { text: t("wizInboxEmpty") });
       const tips = body.createEl("ul", { cls: "kms-wizard-features" });
-      tips.createEl("li", { text: "Pliki PDF (artykuły, materiały)" });
-      tips.createEl("li", { text: "Pliki Markdown (notatki, fragmenty)" });
-      tips.createEl("li", { text: "Eksporty czatów z Claude/ChatGPT" });
-
-      body.createEl("p", { cls: "kms-wizard-hint", text: 'Możesz też uruchomić skan później \u2014 Ctrl+P \u2192 "KMS: Refresh review queue".' });
+      for (const tip of t("wizInboxTips")) {
+        tips.createEl("li", { text: tip });
+      }
+      body.createEl("p", { cls: "kms-wizard-hint", text: t("wizInboxLater") });
     }
 
     this._navButtons(body, {
       showBack: true,
-      nextLabel: fileCount > 0 ? "Uruchom skan →" : "Zakończ",
+      nextLabel: fileCount > 0 ? t("runScan") : t("finish"),
       nextAction: fileCount > 0 ? () => { this.step = 3; this._renderStep(); } : () => this._finish(),
     });
   }
 
   // ── Step 3: First pipeline run ──
   async _stepFirstRun(body) {
-    body.createEl("h3", { text: "Pierwszy skan" });
-    body.createEl("p", { text: `Skanuję ${this.inboxCount} plików z Inboxu, tworzę propozycje i generuję dashboard.` });
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("wizScanTitle") });
+    body.createEl("p", { text: t("wizScanIntro", this.inboxCount) });
 
     const progress = body.createEl("ul", { cls: "kms-progress-list" });
     const steps = [
-      { label: "Skanowanie inboxu", cmd: "scan_inbox" },
-      { label: "Generowanie propozycji", cmd: "make_review_queue" },
-      { label: "Aktualizacja dashboardu", cmd: "generate_dashboard" },
+      { label: t("scanning"), cmd: "scan_inbox" },
+      { label: t("generating"), cmd: "make_review_queue" },
+      { label: t("updatingDash"), cmd: "generate_dashboard" },
     ];
 
     const lis = [];
@@ -1599,23 +1599,23 @@ class KmsOnboardingWizard extends Modal {
     }
 
     if (!failed) {
-      footer.createEl("p", { cls: "kms-wizard-good", text: "Gotowe! Otwórz review queue aby przejrzeć propozycje." });
+      footer.createEl("p", { cls: "kms-wizard-good", text: t("wizScanDone") });
       const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
-      const openBtn = btnRow.createEl("button", { text: "Otwórz Review Queue", cls: "mod-cta" });
+      const openBtn = btnRow.createEl("button", { text: t("openReviewQueue"), cls: "mod-cta" });
       openBtn.addEventListener("click", () => {
         this._finish();
         this.plugin._openFile(REVIEW_QUEUE_FILENAME);
       });
-      const dashBtn = btnRow.createEl("button", { text: "Otwórz Dashboard" });
+      const dashBtn = btnRow.createEl("button", { text: t("openDashboard") });
       dashBtn.addEventListener("click", () => {
         this._finish();
         this.plugin._openFile(DASHBOARD_FILENAME);
       });
     } else {
       const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
-      const retryBtn = btnRow.createEl("button", { text: "Spróbuj ponownie", cls: "mod-cta" });
+      const retryBtn = btnRow.createEl("button", { text: t("wizRetry"), cls: "mod-cta" });
       retryBtn.addEventListener("click", () => { this.step = 3; this._renderStep(); });
-      const skipBtn = btnRow.createEl("button", { text: "Zakończ mimo to" });
+      const skipBtn = btnRow.createEl("button", { text: t("wizFinishAnyway") });
       skipBtn.addEventListener("click", () => this._finish());
     }
   }
@@ -1631,15 +1631,16 @@ class KmsOnboardingWizard extends Modal {
     return li;
   }
 
-  _navButtons(body, { showBack = true, nextLabel = "Dalej →", nextAction = null }) {
+  _navButtons(body, { showBack = true, nextLabel = null, nextAction = null }) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     const row = body.createDiv({ cls: "kms-wizard-actions" });
     if (showBack) {
-      const back = row.createEl("button", { text: "← Wstecz" });
+      const back = row.createEl("button", { text: t("back") });
       back.addEventListener("click", () => { this.step--; this._renderStep(); });
     }
-    const skipBtn = row.createEl("button", { text: "Pomiń" });
+    const skipBtn = row.createEl("button", { text: t("skip") });
     skipBtn.addEventListener("click", () => this._finish());
-    const next = row.createEl("button", { text: nextLabel, cls: "mod-cta" });
+    const next = row.createEl("button", { text: nextLabel || t("next"), cls: "mod-cta" });
     next.addEventListener("click", nextAction || (() => { this.step++; this._renderStep(); }));
   }
 
@@ -1659,8 +1660,9 @@ class KmsOnboardingWizard extends Modal {
 // ════════════════════════════════════════════════════════════════
 
 class KmsConfirmModal extends Modal {
-  constructor(app, message, callback) {
+  constructor(app, plugin, message, callback) {
     super(app);
+    this.plugin = plugin;
     this.message = message;
     this._callback = callback;
     this._resolved = false;
@@ -1668,14 +1670,15 @@ class KmsConfirmModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.addClass("kms-confirm-modal");
-    contentEl.createEl("h3", { text: "Potwierdzenie" });
+    contentEl.createEl("h3", { text: t("confirmTitle") });
     contentEl.createEl("p", { text: this.message });
 
     const btnRow = contentEl.createDiv({ cls: "kms-confirm-actions" });
-    const yesBtn = btnRow.createEl("button", { text: "Tak, wykonaj", cls: "mod-cta mod-warning" });
+    const yesBtn = btnRow.createEl("button", { text: t("confirmYes"), cls: "mod-cta mod-warning" });
     yesBtn.addEventListener("click", () => { this._resolved = true; this.close(); this._callback(true); });
-    const noBtn = btnRow.createEl("button", { text: "Anuluj" });
+    const noBtn = btnRow.createEl("button", { text: t("confirmNo") });
     noBtn.addEventListener("click", () => { this._resolved = true; this.close(); this._callback(false); });
   }
 
@@ -1690,8 +1693,9 @@ class KmsConfirmModal extends Modal {
 // ════════════════════════════════════════════════════════════════
 
 class KmsProgressModal extends Modal {
-  constructor(app, mode, stepLabels) {
+  constructor(app, plugin, mode, stepLabels) {
     super(app);
+    this.plugin = plugin;
     this.mode = mode;
     this.stepLabels = stepLabels;
     this.stepEls = [];
@@ -1730,25 +1734,27 @@ class KmsProgressModal extends Modal {
   }
 
   showDone() {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     this.footerEl.empty();
-    this.footerEl.createEl("p", { text: "Gotowe!", cls: "kms-progress-done" });
+    this.footerEl.createEl("p", { text: t("pipelineDone"), cls: "kms-progress-done" });
     const btnRow = this.footerEl.createDiv({ cls: "kms-progress-actions" });
-    const closeBtn = btnRow.createEl("button", { text: "Zamknij", cls: "mod-cta" });
+    const closeBtn = btnRow.createEl("button", { text: t("close"), cls: "mod-cta" });
     closeBtn.addEventListener("click", () => this.close());
   }
 
   showError(errorMsg) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     this.footerEl.empty();
-    this.footerEl.createEl("p", { text: "Błąd pipeline:", cls: "kms-progress-error-title" });
+    this.footerEl.createEl("p", { text: t("pipelineError"), cls: "kms-progress-error-title" });
     this.footerEl.createEl("pre", { cls: "kms-progress-error-detail", text: errorMsg.slice(-600) });
 
     const btnRow = this.footerEl.createDiv({ cls: "kms-progress-actions" });
-    const copyBtn = btnRow.createEl("button", { text: "Kopiuj błąd" });
+    const copyBtn = btnRow.createEl("button", { text: t("copyError") });
     copyBtn.addEventListener("click", () => {
       navigator.clipboard.writeText(errorMsg);
-      new Notice("Skopiowano do schowka.");
+      new Notice(t("copied"));
     });
-    const closeBtn = btnRow.createEl("button", { text: "Zamknij" });
+    const closeBtn = btnRow.createEl("button", { text: t("close") });
     closeBtn.addEventListener("click", () => this.close());
   }
 

@@ -42,3 +42,5 @@
 # --- Obsidian: układ okien (maszyna / użytkownik) ---
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
+*.base
+*.canvas

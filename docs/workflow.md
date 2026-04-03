@@ -170,7 +170,7 @@ Plugin **kms-review** renderuje dla każdej propozycji:
 | Decyzja | Skutek w etapie 4 | Plik źródłowy | W następnej kolejce |
 |---------|--------------------|---------------|---------------------|
 | `approve` | Przeniesienie + source note | Przeniesiony do `10_Sources/` | Nie |
-| `reject` | **Nic** — propozycja odrzucona | **Zostaje** w `00_Inbox/` | Nie |
+| `reject` | Archiwizacja | Przeniesiony do `99_Archive/rejected/YYYY-MM/` | Nie |
 | `postpone` | **Nic** — odroczona | Zostaje w `00_Inbox/` | **Tak** (wraca) |
 | `pending` | Czeka na decyzję | Zostaje | Tak |
 
@@ -199,8 +199,8 @@ Plugin **kms-review** renderuje dla każdej propozycji:
    - Tworzy source note w `20_Source-Notes/src-2026-NNNN.md` (z template Jinja2)
    - Wstawia wiersz do `artifacts` z `index_status = 'pending'`
    - Zapisuje snapshot w `executions` (do revert)
-4. **Dla `reject`** — tylko zapis decyzji w DB, żadne pliki nie są ruszane
-5. **Dla `postpone`** — jak reject, ale propozycja wraca do następnej kolejki
+4. **Dla `reject`** — przenosi plik do `99_Archive/rejected/YYYY-MM/`, zapisuje decyzję w DB
+5. **Dla `postpone`** — tylko zapis decyzji, plik zostaje w `00_Inbox/`, propozycja wraca do następnej kolejki
 
 **Wejście:** `review-queue.md`, tabela `proposals`
 **Wyjście:** Przeniesione pliki, source notes, tabela `artifacts`
