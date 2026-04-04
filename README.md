@@ -1,92 +1,110 @@
 # KMS — local-first knowledge operations
 
-**Local-first system operacji na wiedzy**: Obsidian vault (treść) + SQLite (decyzje) + skrypty Python + plugin Obsidian. Człowiek w pętli decyzyjnej, AI pomaga — nie decyduje.
+**Local-first knowledge management**: Obsidian vault (content) + SQLite (decisions) + Python scripts (pipeline) + Obsidian plugin (UI). Human-in-the-loop — AI proposes, you decide.
 
-## 5 minut do pierwszego review
+## How it works
 
-```bash
-git clone <repo-url> && cd kms
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp kms/config/config.example.yaml kms/config/config.yaml
+```
+00_Inbox/  →  scan_inbox  →  make_review_queue  →  YOU decide  →  apply_decisions  →  10_Sources/
+                                                  (approve/reject)                      99_Archive/
 ```
 
-Wrzuć pliki do `example-vault/00_Inbox/`, potem:
+1. Drop files into `00_Inbox/`
+2. Pipeline scans, classifies, and creates proposals
+3. You review in Obsidian (or edit review-queue.md manually)
+4. Apply moves approved files to target folders, rejected to archive
+
+## Quick start (5 minutes)
 
 ```bash
+git clone https://github.com/MrTheMatus/KMS.git && cd KMS
+bash scripts/setup.sh          # creates venv, installs deps, copies config
+source .venv/bin/activate
 export PYTHONPATH=.
+
+# Drop some files into example-vault/00_Inbox/, then:
 python -m kms.scripts.scan_inbox
 python -m kms.scripts.make_review_queue
+python -m kms.scripts.generate_dashboard
 ```
 
-Otwórz `example-vault` w Obsidian. Przy pierwszym uruchomieniu plugin otworzy **kreator konfiguracji** (5 kroków: profil → środowisko → inbox → pierwszy skan). Potem: `Ctrl+P` → **KMS: Open review queue** → approve/reject/postpone → `Ctrl+P` → **KMS: Apply decisions**.
+Open `example-vault/` in Obsidian → the plugin's onboarding wizard guides you through the rest.
 
-Lub bez pluginu — edytuj `example-vault/00_Admin/review-queue.md` ręcznie, potem:
+Without Obsidian: edit `example-vault/00_Admin/review-queue.md` manually → `python -m kms.scripts.apply_decisions`.
 
-```bash
-python -m kms.scripts.apply_decisions
+**Full installation guide:** [docs/INSTALL.md](docs/INSTALL.md) (single-machine + Docker paths)
+
+## Obsidian plugin (v0.3.0)
+
+Pre-installed in `example-vault/.obsidian/plugins/kms-review/`. Features:
+
+- **5-step onboarding wizard** with profile selection (core / AI-local / AI-cloud)
+- **Sidebar control panel** — pipeline actions, stats, domain breakdown
+- **Interactive review** — approve/reject/postpone with one click
+- **Search & detail modals** — find proposals by keyword, view full metadata
+- **Bulk operations** — approve/reject all pending at once
+- **Batch revert** — undo entire operations with one click
+- **i18n** — full Polish and English interface
+- **Dark mode** — uses Obsidian theme variables
+
+To install in another vault: copy `main.js`, `manifest.json`, `styles.css` to your vault's `.obsidian/plugins/kms-review/`.
+
+## CLI commands
+
+| Command | Description |
+|---------|-------------|
+| `scan_inbox` | Scan 00_Inbox, register files in SQLite |
+| `make_review_queue` | Generate review-queue.md with proposals |
+| `apply_decisions` | Move approved files, archive rejected |
+| `generate_dashboard` | Build stats dashboard |
+| `verify_integrity` | Check vault ↔ SQLite consistency |
+| `revert_apply` | Undo applied decisions (single or batch) |
+| `list_batches` | List active operation batches |
+| `search_proposals` | Search proposals by text |
+| `status` | Show proposal lifecycle status |
+| `daily_report` | Generate daily summary |
+| `sync_to_anythingllm` | Push artifacts to AnythingLLM for RAG |
+
+Full reference with all flags: [docs/cli.md](docs/cli.md)
+
+## Architecture
+
+```
+Obsidian vault = content plane (source of truth for files)
+SQLite         = decision plane (source of truth for proposals)
+Python scripts = pipeline (stateless transforms)
+Plugin         = UI (read-only view + decision input)
 ```
 
-## Architektura w jednym zdaniu
+Key principles:
+- **Human-in-the-loop**: AI never auto-executes — every mutation requires explicit approval
+- **Idempotent**: safe to re-run any script; no double-moves, no data loss
+- **Auditable**: every operation logged in `audit_log` table with timestamps
+- **Reversible**: any applied decision can be reverted
 
-Obsidian vault = content plane. SQLite = decision plane. Skrypty Python = pipeline. Plugin Obsidian = UI.
+Full architecture: [docs/architecture.md](docs/architecture.md) · ADRs: [docs/adr/](docs/adr/README.md)
 
-Pełna dokumentacja: [docs/architecture.md](docs/architecture.md).
+## Documentation
 
-## Plugin Obsidian (v0.3.0)
+| Document | Description |
+|----------|-------------|
+| [docs/INSTALL.md](docs/INSTALL.md) | Installation — single-machine + Docker quickstarts |
+| [docs/USAGE.md](docs/USAGE.md) | Demo scenario + daily operational workflow |
+| [docs/UPGRADE.md](docs/UPGRADE.md) | Version upgrade guide with migration steps |
+| [docs/workflow.md](docs/workflow.md) | Detailed pipeline workflow |
+| [docs/cli.md](docs/cli.md) | CLI command reference |
+| [docs/architecture.md](docs/architecture.md) | System design, components, failure model |
+| [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records (10 ADRs) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Developer setup, testing, plugin development |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
 
-Plugin `kms-review` (w `example-vault/.obsidian/plugins/kms-review/`) — modularny source w `src/`, bundlowany via esbuild:
-
-- **5-krokowy kreator** konfiguracji z wyborem profilu (core / AI-local / AI-cloud)
-- **Sidebar panel** ze statystykami, domenami i przyciskami akcji
-- **Interaktywne review** w `review-queue.md` (approve/reject/postpone jednym klikiem)
-- **i18n (PL/EN)** — pełne tłumaczenie interfejsu
-- **Search proposals** z filtrowaniem po domenie/tekście
-- **Bulk approve/reject** z potwierdzeniem
-- **Progress modal** z krokami pipeline i czasem wykonania
-- **Revert** (pojedynczy lub cały batch)
-- **Settings tab** — Python path, projekt, język, profil, AnythingLLM
-
-Budowanie pluginu (dev):
-```bash
-cd example-vault/.obsidian/plugins/kms-review
-npm install && npm run build
-```
-
-## Komendy CLI
-
-| Komenda | Opis |
-|---------|------|
-| `scan_inbox` | Skanuj 00_Inbox, utwórz/aktualizuj rekordy w SQLite |
-| `make_review_queue` | Generuj review-queue.md z propozycjami |
-| `apply_decisions` | Przenieś zatwierdzone pliki, archiwizuj odrzucone |
-| `generate_dashboard` | Dashboard ze statystykami pipeline |
-| `daily_report` | Raport dzienny |
-| `generate_source_note` | Utwórz source note z szablonu |
-| `verify_integrity` | Sprawdź spójność vault ↔ SQLite |
-| `status` | Status propozycji (lifecycle, index) |
-| `revert_apply` | Cofnij zastosowaną decyzję |
-| `sync_to_anythingllm` | Synchronizuj artefakty z AnythingLLM |
-
-Pełna lista z opcjami: [docs/cli.md](docs/cli.md).
-
-## Dokumentacja
-
-| Dokument | Opis |
-|----------|------|
-| [docs/architecture.md](docs/architecture.md) | Cel, non-goals, komponenty, diagramy, DoD |
-| [docs/workflow.md](docs/workflow.md) | Codzienna praca |
-| [docs/cli.md](docs/cli.md) | CLI: komendy, config, cron |
-| [docs/continuity.md](docs/continuity.md) | Knowledge continuity |
-| [docs/testing-baseline.md](docs/testing-baseline.md) | 2-tygodniowy plan testów |
-| [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records |
-
-## Wymagania
+## Requirements
 
 - Python 3.11+
-- Obsidian (opcjonalnie z pluginem kms-review)
-- (Opcjonalnie) Docker — `docker-compose.yml` do AnythingLLM + Ollama
+- Obsidian 1.0+ (optional — CLI works standalone)
+- (Optional) Docker — for AnythingLLM + Ollama
+- (Optional) Node.js 18+ — only if rebuilding plugin from source
 
-## Licencja
+## License
 
-Dodaj według potrzeb projektu.
+MIT — see [LICENSE](LICENSE).

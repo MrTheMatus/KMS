@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.1 — 2026-04-04 (Packaging, adoption, self-check)
+
+### Packaging & Distribution
+- **Plugin release script** (`scripts/release-plugin.sh`): builds and zips distributable plugin
+- **Version sync**: pyproject.toml aligned to 0.3.x (was stuck at 0.2.0)
+- **Plugin install instructions**: copy 3 files to any vault (no build step needed)
+
+### Documentation — Adoption-Ready
+- **docs/INSTALL.md**: single-machine quickstart + Docker/cloud-friendly path + troubleshooting
+- **docs/UPGRADE.md**: version compatibility matrix, migration steps for each release
+- **docs/USAGE.md**: 5-minute hands-on demo + daily operational workflow + profile guide
+- **README.md**: rewritten as proper landing page — architecture diagram, full doc index
+- **CONTRIBUTING.md**: updated for modular plugin (src/ structure, esbuild, dev workflow)
+
+### Self-Check System
+- `verify_integrity --self-check`: full environment validation (deps, config, vault dirs, plugin)
+- Checks: Python dependencies, config.yaml sanity, vault directory structure, plugin file presence
+- JSON output for programmatic use by plugin wizard and CI
+
+### Quality
+- Complete i18n: 30+ missing keys added (stat labels, detail fields, revert messages)
+- Pipeline dedup: `_executeSteps()` extracted from `_runPipeline` + `_runRevertPipeline`
+- CSS: fixed 3 dead `border-left-color` declarations
+- Python: 15 ruff lint errors → 0 (unused imports, dead variables)
+
+---
+
 ## 0.3.0 — 2026-04-03 (Modular plugin, i18n, product polish)
 
 ### Obsidian Plugin — Modularization

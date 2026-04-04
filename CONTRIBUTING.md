@@ -35,20 +35,34 @@ ruff format --check kms/ tests/
 
 The plugin lives in `example-vault/.obsidian/plugins/kms-review/`:
 
-- `main.js` — single-file plugin (no build step, plain CommonJS)
-- `styles.css` — all CSS with custom properties for dark/light mode
-- `manifest.json` — plugin metadata
+```
+src/
+  constants.js   — shared constants, DEFAULT_SETTINGS
+  i18n.js        — PL/EN translation dictionary + _t() helper
+  main.js        — plugin entry point (commands, pipeline, review block)
+  modals.js      — search, detail, revert, confirm, progress modals
+  panel.js       — sidebar panel (stats, actions, domains)
+  settings.js    — settings tab
+  wizard.js      — 5-step onboarding wizard
+esbuild.config.mjs — bundler config
+main.js          — built output (DO NOT edit directly)
+styles.css       — all CSS with custom properties for dark/light mode
+manifest.json    — plugin metadata
+```
 
 To develop:
-1. Open `example-vault` in Obsidian
-2. Enable the `kms-review` plugin in Settings → Community plugins
-3. Edit `main.js` or `styles.css`
-4. `Ctrl+P` → "Reload app without saving" to see changes
+1. `cd example-vault/.obsidian/plugins/kms-review && npm install`
+2. `npm run dev` — starts esbuild in watch mode
+3. Open `example-vault` in Obsidian, enable the `kms-review` plugin
+4. Edit files in `src/` — esbuild rebuilds `main.js` automatically
+5. `Ctrl+P` → "Reload app without saving" to see changes
 
 Guidelines:
+- **Never** edit `main.js` directly — always edit `src/*.js` and rebuild
 - Use Obsidian CSS variables (`var(--text-normal)`, `var(--background-primary)`, etc.)
 - Use `--kms-*` custom properties for KMS-specific colors
-- All user-facing strings should support PL (primary) and EN
+- All user-facing strings must go through `_t()` (i18n.js) — PL primary, EN secondary
+- Test both languages before committing
 
 ## Version sync
 
