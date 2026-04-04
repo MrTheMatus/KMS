@@ -39,19 +39,16 @@
 
 /* ── Decision state colors ── */
 .kms-review-block.kms-decision-approve {
-  border-left-color: var(--kms-approve);
   border-color: var(--kms-approve-bg);
   border-left-color: var(--kms-approve);
 }
 
 .kms-review-block.kms-decision-reject {
-  border-left-color: var(--kms-reject);
   border-color: var(--kms-reject-bg);
   border-left-color: var(--kms-reject);
 }
 
 .kms-review-block.kms-decision-postpone {
-  border-left-color: var(--kms-postpone);
   border-color: var(--kms-postpone-bg);
   border-left-color: var(--kms-postpone);
 }
