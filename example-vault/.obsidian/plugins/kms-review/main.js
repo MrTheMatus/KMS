@@ -1440,24 +1440,7 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
     };
     const steps = pipelines[mode];
     if (!steps) return;
-    const progress = new KmsProgressModal(this.app, this, mode, steps.map((s) => s.label));
-    progress.open();
-    for (let i = 0; i < steps.length; i++) {
-      progress.setStep(i, "running");
-      const start = Date.now();
-      try {
-        await this._exec(steps[i].cmd, projectRoot);
-        progress.setStep(i, "done", Date.now() - start);
-      } catch (err) {
-        progress.setStep(i, "error", Date.now() - start);
-        progress.showError(err.message);
-        this._refreshPanel();
-        return;
-      }
-    }
-    progress.showDone();
-    this._reloadKmsViews();
-    this._refreshPanel();
+    await this._executeSteps(mode, steps);
   }
   async _runRevertPipeline(revertCmdLabel, revertCmd) {
     const python = this._getPython();
@@ -1467,13 +1450,18 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
       { cmd: `"${python}" -m kms.scripts.make_review_queue`, label: t("refreshingQueue") },
       { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") }
     ];
-    const progress = new KmsProgressModal(this.app, this, "revert", steps.map((s) => s.label));
+    return this._executeSteps("revert", steps);
+  }
+  /** Shared step-runner: opens progress modal, runs commands, returns true on success. */
+  async _executeSteps(mode, steps) {
+    const progress = new KmsProgressModal(this.app, this, mode, steps.map((s) => s.label));
     progress.open();
+    const cwd = this._getProjectRoot();
     for (let i = 0; i < steps.length; i++) {
       progress.setStep(i, "running");
       const start = Date.now();
       try {
-        await this._exec(steps[i].cmd, this._getProjectRoot());
+        await this._exec(steps[i].cmd, cwd);
         progress.setStep(i, "done", Date.now() - start);
       } catch (err) {
         progress.setStep(i, "error", Date.now() - start);
