@@ -153,11 +153,24 @@ anythingllm:
 Otwórz `00_Admin/review-queue.md` w Obsidian (Reading View).
 
 > **Dla PO:** Zamiast terminala użyj **Ctrl+P** (Command Palette) w Obsidian:
+>
+> **Core:**
+> - `KMS: Open control panel` — sidebar z statystykami i akcjami
+> - `KMS: Open review queue` — otwórz kolejkę do przeglądu
+> - `KMS: Open dashboard` — podgląd statystyk i historii
 > - `KMS: Refresh review queue` — skan + AI streszczenia + dashboard (zastępuje etapy 1-2)
 > - `KMS: Apply decisions` — zastosuj decyzje (zastępuje etap 4)
+>
+> **Bulk / Search:**
 > - `KMS: Approve all pending` — zatwierdź wszystkie naraz
 > - `KMS: Reject all pending` — odrzuć wszystkie naraz
-> - `KMS: Open dashboard` — podgląd statystyk
+> - `KMS: Search proposals` — szukaj propozycji po tekście
+>
+> **Advanced:**
+> - `KMS: Retriage all proposals` — re-klasyfikacja domen/tematów przez LLM
+> - `KMS: Revert applied proposal` — cofnij pojedynczą zaaplikowaną propozycję
+> - `KMS: Revert batch` — cofnij całą operację batch
+> - `KMS: Run setup wizard` — uruchom ponownie kreator konfiguracji
 
 Plugin **kms-review** renderuje dla każdej propozycji:
 - **Nagłówek** z numerem propozycji i badge statusu (PENDING/APPROVE/REJECT)
@@ -247,6 +260,59 @@ awaiting_decision → approved → applied → indexed
 
 ---
 
+## Kreator konfiguracji (Onboarding Wizard)
+
+Przy pierwszym uruchomieniu pluginu (lub `KMS: Run setup wizard`) otwiera się 5-krokowy kreator:
+
+1. **Witaj** — opis systemu i kluczowych obietnic
+2. **Profil** — wybór trybu pracy:
+   - **Core** — podstawowy pipeline bez AI (skan → review → apply)
+   - **AI — lokalnie** — streszczenia i klasyfikacja przez Ollama
+   - **AI — chmura** — streszczenia przez API chmurowe (OpenAI, Anthropic)
+3. **Środowisko** — automatyczna weryfikacja: Python, `config.yaml`, integralność bazy
+4. **Inbox** — sprawdzenie plików w `00_Inbox/`, podpowiedzi co wrzucić
+5. **Pierwszy skan** — uruchamia `scan_inbox` → `make_review_queue` → `generate_dashboard` z postępem
+
+Kreator ustawia flagę `onboardingDone` — nie pojawi się ponownie, chyba że uruchomisz go ręcznie.
+
+---
+
+## Dashboard
+
+`00_Admin/dashboard.md` generowany przez `generate_dashboard`. Zawiera:
+
+- **Statystyki** — pending/approved/applied/rejected/postpone, razem z procentami
+- **Rozkład domen** — top 8 domen z barami wizualnymi
+- **Historia 24h** — ostatnie operacje audit loga
+- **Historia 7d** (zwijana) — szerszy kontekst zmian
+- **Tabela batchy** — lista operacji batch z liczbą propozycji i statusem (active/reverted)
+- **Quick actions** — wszystkie 12 komend Ctrl+P
+
+---
+
+## Batch tracking i cofanie operacji
+
+Każde uruchomienie `apply_decisions` tworzy **batch** (UUID) grupujący wszystkie wykonane operacje. Pozwala to cofnąć całą sesję jednym poleceniem:
+
+```bash
+# Lista batchów
+.venv/bin/python -m kms.scripts.list_batches
+.venv/bin/python -m kms.scripts.list_batches --active-only
+
+# Cofnięcie całego batcha
+.venv/bin/python -m kms.scripts.revert_apply --batch-id <UUID>
+```
+
+W pluginie: `KMS: Revert batch` → modal z listą aktywnych batchów i przyciskiem "Cofnij".
+
+Każdy batch zapisuje:
+- `id` (UUID), `action`, `description`, `proposal_count`
+- `created_at`, `reverted_at` (jeśli cofnięty)
+
+Tabela `audit_log` referencjonuje `batch_id` — pełna ścieżka audytowa.
+
+---
+
 ## Operacje dodatkowe
 
 ### Odświeżenie propozycji (po zmianach w pipeline/AI)
@@ -290,7 +356,11 @@ conn.close()
 ### Cofnięcie zatwierdzonej propozycji
 
 ```bash
+# Pojedyncza propozycja
 .venv/bin/python -m kms.scripts.revert_apply --proposal-id 5
+
+# Cały batch (wszystkie propozycje z danej sesji apply)
+.venv/bin/python -m kms.scripts.revert_apply --batch-id <UUID>
 ```
 
 Co robi:
@@ -298,6 +368,7 @@ Co robi:
 - Przenosi plik z powrotem: `10_Sources/` → `00_Inbox/`
 - Usuwa artifact i execution z DB
 - Propozycja wraca do stanu `awaiting_decision`
+- Przy batch revert: oznacza batch jako reverted, tworzy wpis audytowy
 
 ### Podgląd stanu systemu
 

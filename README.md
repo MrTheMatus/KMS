@@ -19,7 +19,7 @@ python -m kms.scripts.scan_inbox
 python -m kms.scripts.make_review_queue
 ```
 
-Otwórz `example-vault` w Obsidian → `Ctrl+P` → **KMS: Open review queue** → ustaw `decision: approve/reject/postpone` → `Ctrl+P` → **KMS: Apply decisions**.
+Otwórz `example-vault` w Obsidian. Przy pierwszym uruchomieniu plugin otworzy **kreator konfiguracji** (5 kroków: profil → środowisko → inbox → pierwszy skan). Potem: `Ctrl+P` → **KMS: Open review queue** → approve/reject/postpone → `Ctrl+P` → **KMS: Apply decisions**.
 
 Lub bez pluginu — edytuj `example-vault/00_Admin/review-queue.md` ręcznie, potem:
 
@@ -33,17 +33,25 @@ Obsidian vault = content plane. SQLite = decision plane. Skrypty Python = pipeli
 
 Pełna dokumentacja: [docs/architecture.md](docs/architecture.md).
 
-## Plugin Obsidian
+## Plugin Obsidian (v0.3.0)
 
-Plugin `kms-review` (w `example-vault/.obsidian/plugins/kms-review/`) daje:
+Plugin `kms-review` (w `example-vault/.obsidian/plugins/kms-review/`) — modularny source w `src/`, bundlowany via esbuild:
 
-- **Sidebar panel** ze statystykami i przyciskami akcji
+- **5-krokowy kreator** konfiguracji z wyborem profilu (core / AI-local / AI-cloud)
+- **Sidebar panel** ze statystykami, domenami i przyciskami akcji
 - **Interaktywne review** w `review-queue.md` (approve/reject/postpone jednym klikiem)
+- **i18n (PL/EN)** — pełne tłumaczenie interfejsu
 - **Search proposals** z filtrowaniem po domenie/tekście
 - **Bulk approve/reject** z potwierdzeniem
-- **Progress modal** z krokami pipeline
+- **Progress modal** z krokami pipeline i czasem wykonania
 - **Revert** (pojedynczy lub cały batch)
-- **Settings tab** — Python path, projekt, język, AnythingLLM
+- **Settings tab** — Python path, projekt, język, profil, AnythingLLM
+
+Budowanie pluginu (dev):
+```bash
+cd example-vault/.obsidian/plugins/kms-review
+npm install && npm run build
+```
 
 ## Komendy CLI
 
