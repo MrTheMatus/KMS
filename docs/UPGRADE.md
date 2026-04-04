@@ -6,7 +6,7 @@
 |------|----|-------------|----------------|----------------|
 | 0.1.0 | 0.2.0 | Auto (schema.sql is additive) | Add `backup:` section | N/A (plugin was new) |
 | 0.2.0 | 0.3.0 | Auto (batches table added) | No changes required | Replace `main.js` |
-| 0.3.x | 0.3.x | None | None | None |
+| 0.3.0 | 0.3.1 | None | Optional: set `KMS_GATEWAY_TOKEN` | Replace plugin files |
 
 ## General upgrade procedure
 
@@ -83,7 +83,7 @@ Edit `example-vault/.obsidian/plugins/kms-review/data.json`:
 ### Breaking changes
 
 - `ollama_client.py` removed → use `llm_client.py` (same API, provider-agnostic)
-- `gateway/` removed → see ADR-005 (deferred)
+- `gateway/` (Flask-based) removed → re-implemented as thin stdlib gateway in v0.3.1 (see [gateway.md](gateway.md))
 - Plugin constructor signatures changed (internal only — no action needed unless you patched `main.js` manually)
 
 ---
@@ -137,7 +137,7 @@ grep '"version"' example-vault/.obsidian/plugins/kms-review/manifest.json
 grep 'version' pyproject.toml
 ```
 
-Both version numbers should show `0.3.0`.
+Both version numbers should show the latest version (currently `0.3.1`).
 
 ---
 

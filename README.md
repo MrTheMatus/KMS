@@ -34,7 +34,7 @@ Without Obsidian: edit `example-vault/00_Admin/review-queue.md` manually → `py
 
 **Full installation guide:** [docs/INSTALL.md](docs/INSTALL.md) (single-machine + Docker paths)
 
-## Obsidian plugin (v0.3.0)
+## Obsidian plugin (v0.3.1)
 
 Pre-installed in `example-vault/.obsidian/plugins/kms-review/`. Features:
 

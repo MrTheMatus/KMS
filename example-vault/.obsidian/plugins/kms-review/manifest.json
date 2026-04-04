@@ -1,7 +1,7 @@
 {
   "id": "kms-review",
   "name": "KMS Review Queue",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minAppVersion": "1.0.0",
   "description": "Replaces YAML editing in review-queue.md with interactive checkboxes for approve/reject/postpone decisions.",
   "author": "KMS",

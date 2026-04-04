@@ -135,7 +135,7 @@ See [docs/docker-setup.md](docker-setup.md) for full AnythingLLM configuration.
 0 0 * * 0 cd /path/to/KMS && .venv/bin/python -m kms.scripts.verify_integrity --json >> /var/log/kms-integrity.log
 ```
 
-> **Never auto-apply.** Human-in-the-loop is a core design principle (see [ADR-006](adr/006-human-in-the-loop.md)).
+> **Never auto-apply.** Human-in-the-loop is a core design principle (see [ADR-006](adr/ADR-006-human-in-the-loop.md)).
 
 ---
 

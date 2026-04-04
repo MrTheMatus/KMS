@@ -111,7 +111,7 @@ Zdefiniowany w szablonie; pola m.in.: `id`, `type`, `source_type`, `title`, `sou
 
 ### 5.4 SQLite (control plane)
 
-Tabele: `items`, `proposals`, `decisions`, `artifacts`, `executions` (snapshot pod revert), `audit_log`. Szczegóły: [`kms/app/schema.sql`](../../kms/app/schema.sql).
+Tabele: `items`, `proposals`, `decisions`, `artifacts`, `executions` (snapshot pod revert), `audit_log`. Szczegóły: [`kms/app/schema.sql`](../kms/app/schema.sql).
 
 - **`executions`**: jeden wiersz na udany apply — `snapshot_json` (ruch plików + utworzone ścieżki), używany przez `revert_apply`.
 - **`artifacts.index_status`**: `pending` | `ok` | `failed` — indeksacja zewnętrzna (AnythingLLM), niezależnie od samego przeniesienia pliku.
