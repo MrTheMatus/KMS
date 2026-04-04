@@ -152,7 +152,6 @@ def find_best_matches(
     source_text: str, notes: list[PermanentNote], *, top_k: int = 3
 ) -> list[NoteMatch]:
     source_tokens = _tokenize(source_text)
-    source_title_tokens = _tokenize(source_text.split("\n")[0] if source_text else "")
     source_bigrams = _bigrams(source_text)
     if not source_tokens or not notes:
         return []

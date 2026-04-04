@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import re
 import sys
@@ -11,7 +10,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from kms.app.config import abs_path, load_config
+from kms.app.config import abs_path
 from kms.app.db import audit, connect, ensure_schema
 from kms.app.paths import project_root
 from kms.scripts._cli import add_dry_run, build_parser, load_setup_logging

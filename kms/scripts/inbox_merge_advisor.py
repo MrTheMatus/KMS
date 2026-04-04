@@ -9,7 +9,6 @@ Optional: ``--invoke-anythingllm`` sends the rendered prompt to AnythingLLM
 
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 import os
@@ -17,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from kms.app.anythingllm_client import AnythingLLMClient, anythingllm_chat_text_response
-from kms.app.config import abs_path, load_config, vault_paths
+from kms.app.config import abs_path, vault_paths
 from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts
 from kms.app.merge_advisor import analyze_incoming_vs_corpus, render_prompt_from_template
 from kms.app.paths import project_root

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
-from pathlib import Path
 
 from kms.app.config import abs_path, vault_paths
 from kms.app.db import connect, ensure_schema, fetch_all_dicts

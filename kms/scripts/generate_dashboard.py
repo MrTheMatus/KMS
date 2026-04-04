@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from kms.app.config import abs_path, vault_paths
 from kms.app.db import connect, ensure_schema, fetch_all_dicts, utc_now_iso
@@ -49,13 +48,6 @@ def main() -> int:
     )
     decision_counts = {r["decision"]: r["cnt"] for r in proposal_stats}
     total_proposals = sum(decision_counts.values())
-
-    # --- Lifecycle stats ---
-    lifecycle_stats = fetch_all_dicts(
-        conn,
-        "SELECT lifecycle_status, COUNT(*) AS cnt FROM proposals WHERE lifecycle_status IS NOT NULL GROUP BY lifecycle_status",
-    )
-    lifecycle_counts = {r["lifecycle_status"]: r["cnt"] for r in lifecycle_stats}
 
     # --- Index stats ---
     index_stats = fetch_all_dicts(

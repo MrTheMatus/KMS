@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from kms.app.config import abs_path, load_config, vault_paths
+from kms.app.config import abs_path, vault_paths
 from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts, utc_now_iso
 from kms.app.hashing import sha256_file
 from kms.app.paths import project_root

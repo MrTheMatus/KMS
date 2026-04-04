@@ -154,7 +154,7 @@ def _local_synthesis(*, title: str, body: str, topics: str) -> str:
     if bullets:
         summary = " ".join(bullets[:2])[:500]
     lines = [
-        f"## Streszczenie",
+        "## Streszczenie",
         summary,
         "",
         "## Kluczowe wnioski",
