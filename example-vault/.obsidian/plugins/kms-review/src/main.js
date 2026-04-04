@@ -201,7 +201,7 @@ export default class KmsReviewPlugin extends Plugin {
 
   async _scrollToProposal(proposalId) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
-    if (!file) { new Notice("review-queue.md not found."); return; }
+    if (!file) { new Notice(_t(this.settings, "reviewQueueNotFound")); return; }
     const leaf = await this.app.workspace.getLeaf(false);
     await leaf.openFile(file);
 
@@ -234,7 +234,7 @@ export default class KmsReviewPlugin extends Plugin {
 
   async _bulkDecision(decision) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
-    if (!file) { new Notice("review-queue.md not found."); return; }
+    if (!file) { new Notice(_t(this.settings, "reviewQueueNotFound")); return; }
 
     let content = await this.app.vault.read(file);
     const blocks = this._splitKmsBlocks(content);
@@ -277,26 +277,27 @@ export default class KmsReviewPlugin extends Plugin {
     const parsed = this._parseYaml(source);
     if (!parsed.proposal_id) { el.createEl("pre", { text: source }); return; }
 
+    const t = (k, ...a) => _t(this.settings, k, ...a);
     const container = el.createDiv({ cls: `kms-review-block kms-decision-${parsed.decision}` });
     container.dataset.proposalId = parsed.proposal_id;
 
     const header = container.createDiv({ cls: "kms-review-header" });
-    const titleEl = header.createSpan({ cls: "kms-review-title kms-clickable", text: `Proposal #${parsed.proposal_id}` });
+    const titleEl = header.createSpan({ cls: "kms-review-title kms-clickable", text: t("proposalTitle", parsed.proposal_id) });
     titleEl.addEventListener("click", () => new KmsDetailModal(this.app, this, parsed.proposal_id).open());
-    titleEl.title = "Click to view details";
+    titleEl.title = t("clickToViewDetails");
 
     header.createSpan({ cls: "kms-review-badge", text: parsed.decision.toUpperCase() });
 
     const btnRow = container.createDiv({ cls: "kms-decision-buttons" });
     for (const d of [
-      { value: "approve", label: "Approve", aria: "Approve proposal" },
-      { value: "reject", label: "Reject", aria: "Reject proposal" },
-      { value: "postpone", label: "Postpone", aria: "Postpone proposal" },
+      { value: "approve", label: t("btnApprove"), aria: t("ariaApprove", parsed.proposal_id) },
+      { value: "reject", label: t("btnReject"), aria: t("ariaReject", parsed.proposal_id) },
+      { value: "postpone", label: t("btnPostpone"), aria: t("ariaPostpone", parsed.proposal_id) },
     ]) {
       const btn = btnRow.createEl("button", {
         cls: `kms-decision-btn${parsed.decision === d.value ? ` active-${d.value}` : ""}`,
         text: d.label,
-        attr: { "aria-label": `${d.aria} #${parsed.proposal_id}` },
+        attr: { "aria-label": d.aria },
       });
       btn.addEventListener("click", async () => {
         btnRow.querySelectorAll(".kms-decision-btn").forEach((b) => (b.className = "kms-decision-btn"));
@@ -304,13 +305,13 @@ export default class KmsReviewPlugin extends Plugin {
         container.className = `kms-review-block kms-decision-${d.value}`;
         header.querySelector(".kms-review-badge").textContent = d.value.toUpperCase();
         await this._updateField(ctx.sourcePath, parsed.proposal_id, "decision", d.value);
-        new Notice(`Proposal #${parsed.proposal_id}: ${d.value}`);
+        new Notice(_t(this.settings, "proposalDecision", parsed.proposal_id, d.value));
       });
     }
 
     const noteInput = container.createEl("input", {
       cls: "kms-review-note-input", type: "text",
-      placeholder: "Review note (optional)...", value: parsed.review_note || "",
+      placeholder: t("reviewNotePlaceholder"), value: parsed.review_note || "",
     });
     let debounceTimer;
     noteInput.addEventListener("input", () => {

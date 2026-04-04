@@ -93,7 +93,7 @@ export class KmsSearchModal extends Modal {
       }
     } catch (err) {
       resultsEl.empty();
-      resultsEl.createEl("p", { cls: "kms-search-error", text: `Search error: ${err.message}` });
+      resultsEl.createEl("p", { cls: "kms-search-error", text: t("searchErrorMsg", err.message) });
     }
   }
 
@@ -132,47 +132,47 @@ export class KmsDetailModal extends Modal {
       const d = results[0];
 
       const statusSection = body.createDiv({ cls: "kms-detail-section" });
-      statusSection.createEl("h4", { text: "Status" });
+      statusSection.createEl("h4", { text: t("detailStatus") });
       const st = statusSection.createEl("table", { cls: "kms-detail-table" });
-      this._row(st, "Decision", d.decision, `kms-decision-${d.decision}`);
-      this._row(st, "Lifecycle", d.lifecycle_status || "(none)");
-      this._row(st, "Item status", d.item_status);
-      this._row(st, "Confidence", `${(d.confidence || 0).toFixed(2)}`);
-      if (d.reviewer) this._row(st, "Reviewer", d.reviewer);
-      if (d.review_note) this._row(st, "Review note", d.review_note);
-      if (d.decided_at) this._row(st, "Decided at", d.decided_at);
+      this._row(st, t("fieldDecision"), d.decision, `kms-decision-${d.decision}`);
+      this._row(st, t("fieldLifecycle"), d.lifecycle_status || "(none)");
+      this._row(st, t("fieldItemStatus"), d.item_status);
+      this._row(st, t("fieldConfidence"), `${(d.confidence || 0).toFixed(2)}`);
+      if (d.reviewer) this._row(st, t("fieldReviewer"), d.reviewer);
+      if (d.review_note) this._row(st, t("fieldReviewNote"), d.review_note);
+      if (d.decided_at) this._row(st, t("fieldDecidedAt"), d.decided_at);
 
       const cs = body.createDiv({ cls: "kms-detail-section" });
-      cs.createEl("h4", { text: "Classification" });
+      cs.createEl("h4", { text: t("detailClassification") });
       const ct = cs.createEl("table", { cls: "kms-detail-table" });
-      this._row(ct, "Domain", d.domain || "(none)");
-      this._row(ct, "Topics", (d.topics || []).join(", ") || "(none)");
-      this._row(ct, "Kind", d.kind);
-      this._row(ct, "Suggested action", d.suggested_action);
-      this._row(ct, "Target", d.suggested_target || "(none)");
-      if (d.override_target) this._row(ct, "Override target", d.override_target);
+      this._row(ct, t("fieldDomain"), d.domain || "(none)");
+      this._row(ct, t("fieldTopics"), (d.topics || []).join(", ") || "(none)");
+      this._row(ct, t("fieldKind"), d.kind);
+      this._row(ct, t("fieldSuggestedAction"), d.suggested_action);
+      this._row(ct, t("fieldTarget"), d.suggested_target || "(none)");
+      if (d.override_target) this._row(ct, t("fieldOverrideTarget"), d.override_target);
 
       const ps = body.createDiv({ cls: "kms-detail-section" });
-      ps.createEl("h4", { text: "Paths" });
+      ps.createEl("h4", { text: t("detailPaths") });
       const pt = ps.createEl("table", { cls: "kms-detail-table" });
-      this._row(pt, "Source", d.item_path);
-      this._row(pt, "Target", d.suggested_target || "(none)");
-      if (d.source_note_path) this._row(pt, "Source note", d.source_note_path);
-      this._row(pt, "Created", d.created_at || "");
+      this._row(pt, t("fieldSource"), d.item_path);
+      this._row(pt, t("fieldTarget"), d.suggested_target || "(none)");
+      if (d.source_note_path) this._row(pt, t("fieldSourceNote"), d.source_note_path);
+      this._row(pt, t("fieldCreated"), d.created_at || "");
 
       if (d.is_applied) {
         const as = body.createDiv({ cls: "kms-detail-section" });
-        as.createEl("h4", { text: "Applied" });
+        as.createEl("h4", { text: t("detailAppliedSection") });
         const at = as.createEl("table", { cls: "kms-detail-table" });
-        this._row(at, "Applied at", d.applied_at || "");
-        this._row(at, "Index status", d.index_status || "");
-        this._row(at, "Execution ID", String(d.execution_id || ""));
-        if (d.reverted_at) this._row(at, "Reverted at", d.reverted_at);
+        this._row(at, t("fieldAppliedAt"), d.applied_at || "");
+        this._row(at, t("fieldIndexStatus"), d.index_status || "");
+        this._row(at, t("fieldExecutionId"), String(d.execution_id || ""));
+        if (d.reverted_at) this._row(at, t("fieldRevertedAt"), d.reverted_at);
       }
 
       if (d.summary) {
         const ss = body.createDiv({ cls: "kms-detail-section" });
-        ss.createEl("h4", { text: "Summary" });
+        ss.createEl("h4", { text: t("detailSummarySection") });
         ss.createEl("p", { cls: "kms-detail-summary", text: d.summary });
       }
 
@@ -198,7 +198,7 @@ export class KmsDetailModal extends Modal {
       }
     } catch (err) {
       body.empty();
-      body.createEl("p", { cls: "kms-search-error", text: `Error loading detail: ${err.message}` });
+      body.createEl("p", { cls: "kms-search-error", text: t("detailErrorMsg", err.message) });
     }
   }
 
@@ -228,7 +228,7 @@ export class KmsRevertModal extends Modal {
     contentEl.createEl("p", { text: t("revertDesc") });
 
     const inputRow = contentEl.createDiv({ cls: "kms-revert-input-row" });
-    const input = inputRow.createEl("input", { cls: "kms-revert-input", type: "number", placeholder: "Proposal ID (e.g. 42)" });
+    const input = inputRow.createEl("input", { cls: "kms-revert-input", type: "number", placeholder: t("revertPlaceholder") });
     const previewEl = contentEl.createDiv({ cls: "kms-revert-preview" });
 
     const btnRow = contentEl.createDiv({ cls: "kms-revert-btn-row" });
@@ -238,25 +238,25 @@ export class KmsRevertModal extends Modal {
 
     previewBtn.addEventListener("click", async () => {
       const pid = parseInt(input.value, 10);
-      if (!pid) { new Notice("Enter a valid proposal ID."); return; }
+      if (!pid) { new Notice(t("revertInvalidId")); return; }
       previewEl.empty();
-      previewEl.createEl("p", { cls: "kms-search-loading", text: "Running dry-run..." });
+      previewEl.createEl("p", { cls: "kms-search-loading", text: t("revertDryRun") });
       const python = this.plugin._getPython();
       const projectRoot = this.plugin._getProjectRoot();
       try {
         const stdout = await this.plugin._exec(`"${python}" -m kms.scripts.proposal_detail --proposal-id ${pid}`, projectRoot);
         const results = JSON.parse(stdout);
         previewEl.empty();
-        if (results.length === 0) { previewEl.createEl("p", { text: `Proposal #${pid} not found.` }); return; }
+        if (results.length === 0) { previewEl.createEl("p", { text: t("revertNotFound", pid) }); return; }
         const d = results[0];
         if (!d.can_revert) {
-          previewEl.createEl("p", { cls: "kms-search-error", text: d.is_applied ? `Proposal #${pid} was already reverted.` : `Proposal #${pid} has not been applied yet.` });
+          previewEl.createEl("p", { cls: "kms-search-error", text: d.is_applied ? t("revertAlreadyReverted", pid) : t("revertNotApplied", pid) });
           return;
         }
-        previewEl.createEl("p", { text: `Will revert: ${d.item_path} (${d.suggested_action} -> ${d.suggested_target})` });
-        previewEl.createEl("p", { text: `Applied at: ${d.applied_at || "unknown"}`, cls: "kms-detail-summary" });
+        previewEl.createEl("p", { text: t("revertWillRevert", d.item_path, d.suggested_action, d.suggested_target) });
+        previewEl.createEl("p", { text: t("revertAppliedAtLabel", d.applied_at), cls: "kms-detail-summary" });
         revertBtn.disabled = false;
-      } catch (err) { previewEl.empty(); previewEl.createEl("p", { cls: "kms-search-error", text: `Error: ${err.message}` }); }
+      } catch (err) { previewEl.empty(); previewEl.createEl("p", { cls: "kms-search-error", text: t("detailErrorMsg", err.message) }); }
     });
 
     revertBtn.addEventListener("click", async () => {
@@ -319,10 +319,10 @@ export class KmsBatchRevertModal extends Modal {
         const header = item.createDiv({ cls: "kms-search-result-header" });
         header.createSpan({ cls: "kms-search-pid", text: b.id.slice(0, 8) });
         header.createSpan({ cls: "kms-tag kms-tag-domain", text: b.action });
-        header.createSpan({ cls: "kms-search-decision kms-decision-approve", text: `${b.proposal_count} proposals` });
+        header.createSpan({ cls: "kms-search-decision kms-decision-approve", text: t("batchProposalCount", b.proposal_count) });
 
         item.createDiv({ cls: "kms-search-path", text: b.description || "" });
-        item.createDiv({ cls: "kms-search-summary", text: `Created: ${(b.created_at || "").replace("T", " ").slice(0, 16)}` });
+        item.createDiv({ cls: "kms-search-summary", text: t("batchCreatedLabel", (b.created_at || "").replace("T", " ").slice(0, 16)) });
 
         const actions = item.createDiv({ cls: "kms-search-actions" });
         const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: t("revertEntireBatch") });

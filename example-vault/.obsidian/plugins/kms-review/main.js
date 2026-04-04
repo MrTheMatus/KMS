@@ -189,6 +189,67 @@ var I18N = {
     settingSlugDesc: "Nazwa workspace w AnythingLLM",
     settingHelp: "Pomoc",
     settingHelpText: "Otw\xF3rz <code>docs/workflow.md</code> aby zobaczy\u0107 pe\u0142ny opis pracy z KMS.",
+    // Stats
+    statTotal: "Razem",
+    statPending: "Oczekuj\u0105ce",
+    statApproved: "Zatwierdzone",
+    statApplied: "Zastosowane",
+    statRejected: "Odrzucone",
+    statPostpone: "Od\u0142o\u017Cone",
+    // Detail sections
+    detailStatus: "Status",
+    detailClassification: "Klasyfikacja",
+    detailPaths: "\u015Acie\u017Cki",
+    detailAppliedSection: "Zastosowanie",
+    detailSummarySection: "Streszczenie",
+    // Detail fields
+    fieldDecision: "Decyzja",
+    fieldLifecycle: "Cykl \u017Cycia",
+    fieldItemStatus: "Status elementu",
+    fieldConfidence: "Pewno\u015B\u0107",
+    fieldReviewer: "Recenzent",
+    fieldReviewNote: "Notatka",
+    fieldDecidedAt: "Zdecydowano",
+    fieldDomain: "Domena",
+    fieldTopics: "Tematy",
+    fieldKind: "Rodzaj",
+    fieldSuggestedAction: "Sugerowana akcja",
+    fieldTarget: "Cel",
+    fieldOverrideTarget: "Nadpisany cel",
+    fieldSource: "\u0179r\xF3d\u0142o",
+    fieldSourceNote: "Notatka \u017Ar\xF3d\u0142owa",
+    fieldCreated: "Utworzono",
+    fieldAppliedAt: "Zastosowano",
+    fieldIndexStatus: "Status indeksu",
+    fieldExecutionId: "ID wykonania",
+    fieldRevertedAt: "Cofni\u0119to",
+    // Revert helpers
+    revertPlaceholder: "ID propozycji (np. 42)",
+    revertInvalidId: "Podaj prawid\u0142owe ID propozycji.",
+    revertDryRun: "Podgl\u0105d (dry-run)...",
+    revertNotFound: (id) => `Propozycja #${id} nie znaleziona.`,
+    revertAlreadyReverted: (id) => `Propozycja #${id} zosta\u0142a ju\u017C cofni\u0119ta.`,
+    revertNotApplied: (id) => `Propozycja #${id} nie zosta\u0142a jeszcze zastosowana.`,
+    revertWillRevert: (path3, action, target) => `Cofni\u0119cie: ${path3} (${action} \u2192 ${target})`,
+    revertAppliedAtLabel: (at) => `Zastosowano: ${at || "nieznane"}`,
+    // Review block
+    proposalTitle: (id) => `Propozycja #${id}`,
+    clickToViewDetails: "Kliknij aby zobaczy\u0107 szczeg\xF3\u0142y",
+    reviewNotePlaceholder: "Notatka recenzenta (opcjonalnie)...",
+    btnApprove: "Zatwierd\u017A",
+    btnReject: "Odrzu\u0107",
+    btnPostpone: "Od\u0142\xF3\u017C",
+    ariaApprove: (id) => `Zatwierd\u017A propozycj\u0119 #${id}`,
+    ariaReject: (id) => `Odrzu\u0107 propozycj\u0119 #${id}`,
+    ariaPostpone: (id) => `Od\u0142\xF3\u017C propozycj\u0119 #${id}`,
+    // Batch list
+    batchProposalCount: (n) => `${n} propozycji`,
+    batchCreatedLabel: (at) => `Utworzono: ${at}`,
+    // Errors
+    searchErrorMsg: (msg) => `B\u0142\u0105d wyszukiwania: ${msg}`,
+    detailErrorMsg: (msg) => `B\u0142\u0105d \u0142adowania szczeg\xF3\u0142\xF3w: ${msg}`,
+    reviewQueueNotFound: "review-queue.md nie znaleziono.",
+    proposalDecision: (id, d) => `Propozycja #${id}: ${d}`,
     fileNotFound: (f) => `${f} nie znaleziono. Uruchom pipeline.`
   },
   en: {
@@ -326,6 +387,60 @@ var I18N = {
     settingSlugDesc: "AnythingLLM workspace name",
     settingHelp: "Help",
     settingHelpText: "Open <code>docs/workflow.md</code> for a full workflow description.",
+    statTotal: "Total",
+    statPending: "Pending",
+    statApproved: "Approved",
+    statApplied: "Applied",
+    statRejected: "Rejected",
+    statPostpone: "Postpone",
+    detailStatus: "Status",
+    detailClassification: "Classification",
+    detailPaths: "Paths",
+    detailAppliedSection: "Applied",
+    detailSummarySection: "Summary",
+    fieldDecision: "Decision",
+    fieldLifecycle: "Lifecycle",
+    fieldItemStatus: "Item status",
+    fieldConfidence: "Confidence",
+    fieldReviewer: "Reviewer",
+    fieldReviewNote: "Review note",
+    fieldDecidedAt: "Decided at",
+    fieldDomain: "Domain",
+    fieldTopics: "Topics",
+    fieldKind: "Kind",
+    fieldSuggestedAction: "Suggested action",
+    fieldTarget: "Target",
+    fieldOverrideTarget: "Override target",
+    fieldSource: "Source",
+    fieldSourceNote: "Source note",
+    fieldCreated: "Created",
+    fieldAppliedAt: "Applied at",
+    fieldIndexStatus: "Index status",
+    fieldExecutionId: "Execution ID",
+    fieldRevertedAt: "Reverted at",
+    revertPlaceholder: "Proposal ID (e.g. 42)",
+    revertInvalidId: "Enter a valid proposal ID.",
+    revertDryRun: "Running dry-run...",
+    revertNotFound: (id) => `Proposal #${id} not found.`,
+    revertAlreadyReverted: (id) => `Proposal #${id} was already reverted.`,
+    revertNotApplied: (id) => `Proposal #${id} has not been applied yet.`,
+    revertWillRevert: (path3, action, target) => `Will revert: ${path3} (${action} \u2192 ${target})`,
+    revertAppliedAtLabel: (at) => `Applied at: ${at || "unknown"}`,
+    proposalTitle: (id) => `Proposal #${id}`,
+    clickToViewDetails: "Click to view details",
+    reviewNotePlaceholder: "Review note (optional)...",
+    btnApprove: "Approve",
+    btnReject: "Reject",
+    btnPostpone: "Postpone",
+    ariaApprove: (id) => `Approve proposal #${id}`,
+    ariaReject: (id) => `Reject proposal #${id}`,
+    ariaPostpone: (id) => `Postpone proposal #${id}`,
+    batchProposalCount: (n) => `${n} proposal${n !== 1 ? "s" : ""}`,
+    batchCreatedLabel: (at) => `Created: ${at}`,
+    searchErrorMsg: (msg) => `Search error: ${msg}`,
+    detailErrorMsg: (msg) => `Error loading detail: ${msg}`,
+    reviewQueueNotFound: "review-queue.md not found.",
+    proposalDecision: (id, d) => `Proposal #${id}: ${d}`,
     fileNotFound: (f) => `${f} not found. Run the pipeline first.`
   }
 };
@@ -434,7 +549,7 @@ var KmsSearchModal = class extends import_obsidian.Modal {
       }
     } catch (err) {
       resultsEl.empty();
-      resultsEl.createEl("p", { cls: "kms-search-error", text: `Search error: ${err.message}` });
+      resultsEl.createEl("p", { cls: "kms-search-error", text: t("searchErrorMsg", err.message) });
     }
   }
   onClose() {
@@ -467,43 +582,43 @@ var KmsDetailModal = class extends import_obsidian.Modal {
       }
       const d = results[0];
       const statusSection = body.createDiv({ cls: "kms-detail-section" });
-      statusSection.createEl("h4", { text: "Status" });
+      statusSection.createEl("h4", { text: t("detailStatus") });
       const st = statusSection.createEl("table", { cls: "kms-detail-table" });
-      this._row(st, "Decision", d.decision, `kms-decision-${d.decision}`);
-      this._row(st, "Lifecycle", d.lifecycle_status || "(none)");
-      this._row(st, "Item status", d.item_status);
-      this._row(st, "Confidence", `${(d.confidence || 0).toFixed(2)}`);
-      if (d.reviewer) this._row(st, "Reviewer", d.reviewer);
-      if (d.review_note) this._row(st, "Review note", d.review_note);
-      if (d.decided_at) this._row(st, "Decided at", d.decided_at);
+      this._row(st, t("fieldDecision"), d.decision, `kms-decision-${d.decision}`);
+      this._row(st, t("fieldLifecycle"), d.lifecycle_status || "(none)");
+      this._row(st, t("fieldItemStatus"), d.item_status);
+      this._row(st, t("fieldConfidence"), `${(d.confidence || 0).toFixed(2)}`);
+      if (d.reviewer) this._row(st, t("fieldReviewer"), d.reviewer);
+      if (d.review_note) this._row(st, t("fieldReviewNote"), d.review_note);
+      if (d.decided_at) this._row(st, t("fieldDecidedAt"), d.decided_at);
       const cs = body.createDiv({ cls: "kms-detail-section" });
-      cs.createEl("h4", { text: "Classification" });
+      cs.createEl("h4", { text: t("detailClassification") });
       const ct = cs.createEl("table", { cls: "kms-detail-table" });
-      this._row(ct, "Domain", d.domain || "(none)");
-      this._row(ct, "Topics", (d.topics || []).join(", ") || "(none)");
-      this._row(ct, "Kind", d.kind);
-      this._row(ct, "Suggested action", d.suggested_action);
-      this._row(ct, "Target", d.suggested_target || "(none)");
-      if (d.override_target) this._row(ct, "Override target", d.override_target);
+      this._row(ct, t("fieldDomain"), d.domain || "(none)");
+      this._row(ct, t("fieldTopics"), (d.topics || []).join(", ") || "(none)");
+      this._row(ct, t("fieldKind"), d.kind);
+      this._row(ct, t("fieldSuggestedAction"), d.suggested_action);
+      this._row(ct, t("fieldTarget"), d.suggested_target || "(none)");
+      if (d.override_target) this._row(ct, t("fieldOverrideTarget"), d.override_target);
       const ps = body.createDiv({ cls: "kms-detail-section" });
-      ps.createEl("h4", { text: "Paths" });
+      ps.createEl("h4", { text: t("detailPaths") });
       const pt = ps.createEl("table", { cls: "kms-detail-table" });
-      this._row(pt, "Source", d.item_path);
-      this._row(pt, "Target", d.suggested_target || "(none)");
-      if (d.source_note_path) this._row(pt, "Source note", d.source_note_path);
-      this._row(pt, "Created", d.created_at || "");
+      this._row(pt, t("fieldSource"), d.item_path);
+      this._row(pt, t("fieldTarget"), d.suggested_target || "(none)");
+      if (d.source_note_path) this._row(pt, t("fieldSourceNote"), d.source_note_path);
+      this._row(pt, t("fieldCreated"), d.created_at || "");
       if (d.is_applied) {
         const as = body.createDiv({ cls: "kms-detail-section" });
-        as.createEl("h4", { text: "Applied" });
+        as.createEl("h4", { text: t("detailAppliedSection") });
         const at = as.createEl("table", { cls: "kms-detail-table" });
-        this._row(at, "Applied at", d.applied_at || "");
-        this._row(at, "Index status", d.index_status || "");
-        this._row(at, "Execution ID", String(d.execution_id || ""));
-        if (d.reverted_at) this._row(at, "Reverted at", d.reverted_at);
+        this._row(at, t("fieldAppliedAt"), d.applied_at || "");
+        this._row(at, t("fieldIndexStatus"), d.index_status || "");
+        this._row(at, t("fieldExecutionId"), String(d.execution_id || ""));
+        if (d.reverted_at) this._row(at, t("fieldRevertedAt"), d.reverted_at);
       }
       if (d.summary) {
         const ss = body.createDiv({ cls: "kms-detail-section" });
-        ss.createEl("h4", { text: "Summary" });
+        ss.createEl("h4", { text: t("detailSummarySection") });
         ss.createEl("p", { cls: "kms-detail-summary", text: d.summary });
       }
       const actions = body.createDiv({ cls: "kms-detail-actions" });
@@ -543,7 +658,7 @@ var KmsDetailModal = class extends import_obsidian.Modal {
       }
     } catch (err) {
       body.empty();
-      body.createEl("p", { cls: "kms-search-error", text: `Error loading detail: ${err.message}` });
+      body.createEl("p", { cls: "kms-search-error", text: t("detailErrorMsg", err.message) });
     }
   }
   _row(table, label, value, extraCls) {
@@ -568,7 +683,7 @@ var KmsRevertModal = class extends import_obsidian.Modal {
     contentEl.createEl("h3", { text: t("revertTitle") });
     contentEl.createEl("p", { text: t("revertDesc") });
     const inputRow = contentEl.createDiv({ cls: "kms-revert-input-row" });
-    const input = inputRow.createEl("input", { cls: "kms-revert-input", type: "number", placeholder: "Proposal ID (e.g. 42)" });
+    const input = inputRow.createEl("input", { cls: "kms-revert-input", type: "number", placeholder: t("revertPlaceholder") });
     const previewEl = contentEl.createDiv({ cls: "kms-revert-preview" });
     const btnRow = contentEl.createDiv({ cls: "kms-revert-btn-row" });
     const previewBtn = btnRow.createEl("button", { cls: "kms-search-action-btn kms-action-detail", text: t("revertPreview") });
@@ -577,11 +692,11 @@ var KmsRevertModal = class extends import_obsidian.Modal {
     previewBtn.addEventListener("click", async () => {
       const pid = parseInt(input.value, 10);
       if (!pid) {
-        new import_obsidian.Notice("Enter a valid proposal ID.");
+        new import_obsidian.Notice(t("revertInvalidId"));
         return;
       }
       previewEl.empty();
-      previewEl.createEl("p", { cls: "kms-search-loading", text: "Running dry-run..." });
+      previewEl.createEl("p", { cls: "kms-search-loading", text: t("revertDryRun") });
       const python = this.plugin._getPython();
       const projectRoot = this.plugin._getProjectRoot();
       try {
@@ -589,20 +704,20 @@ var KmsRevertModal = class extends import_obsidian.Modal {
         const results = JSON.parse(stdout);
         previewEl.empty();
         if (results.length === 0) {
-          previewEl.createEl("p", { text: `Proposal #${pid} not found.` });
+          previewEl.createEl("p", { text: t("revertNotFound", pid) });
           return;
         }
         const d = results[0];
         if (!d.can_revert) {
-          previewEl.createEl("p", { cls: "kms-search-error", text: d.is_applied ? `Proposal #${pid} was already reverted.` : `Proposal #${pid} has not been applied yet.` });
+          previewEl.createEl("p", { cls: "kms-search-error", text: d.is_applied ? t("revertAlreadyReverted", pid) : t("revertNotApplied", pid) });
           return;
         }
-        previewEl.createEl("p", { text: `Will revert: ${d.item_path} (${d.suggested_action} -> ${d.suggested_target})` });
-        previewEl.createEl("p", { text: `Applied at: ${d.applied_at || "unknown"}`, cls: "kms-detail-summary" });
+        previewEl.createEl("p", { text: t("revertWillRevert", d.item_path, d.suggested_action, d.suggested_target) });
+        previewEl.createEl("p", { text: t("revertAppliedAtLabel", d.applied_at), cls: "kms-detail-summary" });
         revertBtn.disabled = false;
       } catch (err) {
         previewEl.empty();
-        previewEl.createEl("p", { cls: "kms-search-error", text: `Error: ${err.message}` });
+        previewEl.createEl("p", { cls: "kms-search-error", text: t("detailErrorMsg", err.message) });
       }
     });
     revertBtn.addEventListener("click", async () => {
@@ -666,9 +781,9 @@ var KmsBatchRevertModal = class extends import_obsidian.Modal {
         const header = item.createDiv({ cls: "kms-search-result-header" });
         header.createSpan({ cls: "kms-search-pid", text: b.id.slice(0, 8) });
         header.createSpan({ cls: "kms-tag kms-tag-domain", text: b.action });
-        header.createSpan({ cls: "kms-search-decision kms-decision-approve", text: `${b.proposal_count} proposals` });
+        header.createSpan({ cls: "kms-search-decision kms-decision-approve", text: t("batchProposalCount", b.proposal_count) });
         item.createDiv({ cls: "kms-search-path", text: b.description || "" });
-        item.createDiv({ cls: "kms-search-summary", text: `Created: ${(b.created_at || "").replace("T", " ").slice(0, 16)}` });
+        item.createDiv({ cls: "kms-search-summary", text: t("batchCreatedLabel", (b.created_at || "").replace("T", " ").slice(0, 16)) });
         const actions = item.createDiv({ cls: "kms-search-actions" });
         const revertBtn = actions.createEl("button", { cls: "kms-search-action-btn kms-action-revert", text: t("revertEntireBatch") });
         revertBtn.addEventListener("click", async () => {
@@ -879,12 +994,12 @@ var KmsPanelView = class extends import_obsidian2.ItemView {
       const applied = all.filter((p) => p.is_applied).length;
       const total = all.length;
       const grid = el.createDiv({ cls: "kms-stats-grid" });
-      this._statCard(grid, String(total), "Total", "");
-      this._statCard(grid, String(pending), "Pending", "kms-stat-pending");
-      this._statCard(grid, String(approve), "Approved", "kms-stat-approve");
-      this._statCard(grid, String(applied), "Applied", "kms-stat-applied");
-      this._statCard(grid, String(reject), "Rejected", "kms-stat-reject");
-      this._statCard(grid, String(postpone), "Postpone", "kms-stat-postpone");
+      this._statCard(grid, String(total), t("statTotal"), "");
+      this._statCard(grid, String(pending), t("statPending"), "kms-stat-pending");
+      this._statCard(grid, String(approve), t("statApproved"), "kms-stat-approve");
+      this._statCard(grid, String(applied), t("statApplied"), "kms-stat-applied");
+      this._statCard(grid, String(reject), t("statRejected"), "kms-stat-reject");
+      this._statCard(grid, String(postpone), t("statPostpone"), "kms-stat-postpone");
       const domains = {};
       for (const p of all) {
         const d = p.domain || "(none)";
@@ -1409,7 +1524,7 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
   async _scrollToProposal(proposalId) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
     if (!file) {
-      new import_obsidian5.Notice("review-queue.md not found.");
+      new import_obsidian5.Notice(_t(this.settings, "reviewQueueNotFound"));
       return;
     }
     const leaf = await this.app.workspace.getLeaf(false);
@@ -1445,7 +1560,7 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
   async _bulkDecision(decision) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
     if (!file) {
-      new import_obsidian5.Notice("review-queue.md not found.");
+      new import_obsidian5.Notice(_t(this.settings, "reviewQueueNotFound"));
       return;
     }
     let content = await this.app.vault.read(file);
@@ -1491,23 +1606,24 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
       el.createEl("pre", { text: source });
       return;
     }
+    const t = (k, ...a) => _t(this.settings, k, ...a);
     const container = el.createDiv({ cls: `kms-review-block kms-decision-${parsed.decision}` });
     container.dataset.proposalId = parsed.proposal_id;
     const header = container.createDiv({ cls: "kms-review-header" });
-    const titleEl = header.createSpan({ cls: "kms-review-title kms-clickable", text: `Proposal #${parsed.proposal_id}` });
+    const titleEl = header.createSpan({ cls: "kms-review-title kms-clickable", text: t("proposalTitle", parsed.proposal_id) });
     titleEl.addEventListener("click", () => new KmsDetailModal(this.app, this, parsed.proposal_id).open());
-    titleEl.title = "Click to view details";
+    titleEl.title = t("clickToViewDetails");
     header.createSpan({ cls: "kms-review-badge", text: parsed.decision.toUpperCase() });
     const btnRow = container.createDiv({ cls: "kms-decision-buttons" });
     for (const d of [
-      { value: "approve", label: "Approve", aria: "Approve proposal" },
-      { value: "reject", label: "Reject", aria: "Reject proposal" },
-      { value: "postpone", label: "Postpone", aria: "Postpone proposal" }
+      { value: "approve", label: t("btnApprove"), aria: t("ariaApprove", parsed.proposal_id) },
+      { value: "reject", label: t("btnReject"), aria: t("ariaReject", parsed.proposal_id) },
+      { value: "postpone", label: t("btnPostpone"), aria: t("ariaPostpone", parsed.proposal_id) }
     ]) {
       const btn = btnRow.createEl("button", {
         cls: `kms-decision-btn${parsed.decision === d.value ? ` active-${d.value}` : ""}`,
         text: d.label,
-        attr: { "aria-label": `${d.aria} #${parsed.proposal_id}` }
+        attr: { "aria-label": d.aria }
       });
       btn.addEventListener("click", async () => {
         btnRow.querySelectorAll(".kms-decision-btn").forEach((b) => b.className = "kms-decision-btn");
@@ -1515,13 +1631,13 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
         container.className = `kms-review-block kms-decision-${d.value}`;
         header.querySelector(".kms-review-badge").textContent = d.value.toUpperCase();
         await this._updateField(ctx.sourcePath, parsed.proposal_id, "decision", d.value);
-        new import_obsidian5.Notice(`Proposal #${parsed.proposal_id}: ${d.value}`);
+        new import_obsidian5.Notice(_t(this.settings, "proposalDecision", parsed.proposal_id, d.value));
       });
     }
     const noteInput = container.createEl("input", {
       cls: "kms-review-note-input",
       type: "text",
-      placeholder: "Review note (optional)...",
+      placeholder: t("reviewNotePlaceholder"),
       value: parsed.review_note || ""
     });
     let debounceTimer;

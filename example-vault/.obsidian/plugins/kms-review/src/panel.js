@@ -94,12 +94,12 @@ export class KmsPanelView extends ItemView {
       const total = all.length;
 
       const grid = el.createDiv({ cls: "kms-stats-grid" });
-      this._statCard(grid, String(total), "Total", "");
-      this._statCard(grid, String(pending), "Pending", "kms-stat-pending");
-      this._statCard(grid, String(approve), "Approved", "kms-stat-approve");
-      this._statCard(grid, String(applied), "Applied", "kms-stat-applied");
-      this._statCard(grid, String(reject), "Rejected", "kms-stat-reject");
-      this._statCard(grid, String(postpone), "Postpone", "kms-stat-postpone");
+      this._statCard(grid, String(total), t("statTotal"), "");
+      this._statCard(grid, String(pending), t("statPending"), "kms-stat-pending");
+      this._statCard(grid, String(approve), t("statApproved"), "kms-stat-approve");
+      this._statCard(grid, String(applied), t("statApplied"), "kms-stat-applied");
+      this._statCard(grid, String(reject), t("statRejected"), "kms-stat-reject");
+      this._statCard(grid, String(postpone), t("statPostpone"), "kms-stat-postpone");
 
       const domains = {};
       for (const p of all) {
