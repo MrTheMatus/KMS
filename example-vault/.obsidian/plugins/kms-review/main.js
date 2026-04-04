@@ -183,6 +183,7 @@ var I18N = {
     settingLangDesc: "J\u0119zyk komunikat\xF3w w pluginie",
     settingProfile: "Profil",
     settingProfileDesc: "Okre\u015Bla widoczno\u015B\u0107 zaawansowanych opcji",
+    settingAnythingLLMHeader: "AnythingLLM",
     settingAnythingLLM: "W\u0142\u0105cz AnythingLLM",
     settingAnythingLLMDesc: "Integracja z AnythingLLM dla retrieval i Q&A",
     settingSlug: "Workspace slug",
@@ -381,6 +382,7 @@ var I18N = {
     settingLangDesc: "Language for plugin messages",
     settingProfile: "Profile",
     settingProfileDesc: "Controls visibility of advanced options",
+    settingAnythingLLMHeader: "AnythingLLM",
     settingAnythingLLM: "Enable AnythingLLM",
     settingAnythingLLMDesc: "AnythingLLM integration for retrieval and Q&A",
     settingSlug: "Workspace slug",
@@ -1068,7 +1070,7 @@ var KmsSettingsTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: "AnythingLLM" });
+    containerEl.createEl("h3", { text: t("settingAnythingLLMHeader") });
     new import_obsidian3.Setting(containerEl).setName(t("settingAnythingLLM")).setDesc(t("settingAnythingLLMDesc")).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.anythingllmEnabled).onChange(async (value) => {
         this.plugin.settings.anythingllmEnabled = value;

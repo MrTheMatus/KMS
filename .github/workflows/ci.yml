@@ -74,3 +74,24 @@ jobs:
           python -m kms.scripts.verify_integrity --json
         env:
           PYTHONPATH: "."
+
+  plugin-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build plugin
+        working-directory: example-vault/.obsidian/plugins/kms-review
+        run: |
+          npm install
+          npm run build
+
+      - name: Verify built output exists
+        run: |
+          test -f example-vault/.obsidian/plugins/kms-review/main.js
+          echo "Plugin build OK"

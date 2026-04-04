@@ -66,10 +66,12 @@ Guidelines:
 
 ## Version sync
 
-Keep versions aligned:
-- `manifest.json` → `version`
+Keep versions aligned across all four files:
+- `example-vault/.obsidian/plugins/kms-review/manifest.json` → `version`
+- `example-vault/.obsidian/plugins/kms-review/package.json` → `version`
 - `pyproject.toml` → `version`
 - `CHANGELOG.md` → latest entry
+- `kms/gateway/server.py` → health endpoint version string
 
 ## Commit messages
 

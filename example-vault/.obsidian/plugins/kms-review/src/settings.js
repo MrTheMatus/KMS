@@ -68,7 +68,7 @@ export class KmsSettingsTab extends PluginSettingTab {
           }),
       );
 
-    containerEl.createEl("h3", { text: "AnythingLLM" });
+    containerEl.createEl("h3", { text: t("settingAnythingLLMHeader") });
 
     new Setting(containerEl)
       .setName(t("settingAnythingLLM"))
