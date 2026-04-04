@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-from typing import Any
 from unittest.mock import patch
 
 import pytest

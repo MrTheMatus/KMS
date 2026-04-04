@@ -3,7 +3,6 @@ verify_integrity, daily_report, generate_source_note."""
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import sqlite3
 import sys

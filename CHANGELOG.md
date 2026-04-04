@@ -19,6 +19,15 @@
 - Checks: Python dependencies, config.yaml sanity, vault directory structure, plugin file presence
 - JSON output for programmatic use by plugin wizard and CI
 
+### Remote Gateway (Sprint 5)
+- **Thin HTTP gateway** (`kms/gateway/server.py`): zero external deps (stdlib only)
+- Endpoints: `GET /api/pending`, `POST /api/decisions`, `GET /api/status`, `GET /api/health`
+- Bearer token auth via `KMS_GATEWAY_TOKEN` env var
+- Decisions only — no vault access, no auto-apply, no LLM
+- Every decision audited with `reviewer=gateway`
+- 14 tests covering auth, CRUD, edge cases
+- ADR-005 updated, `docs/gateway.md` with full API reference + deployment examples
+
 ### Quality
 - Complete i18n: 30+ missing keys added (stat labels, detail fields, revert messages)
 - Pipeline dedup: `_executeSteps()` extracted from `_runPipeline` + `_runRevertPipeline`

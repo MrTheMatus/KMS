@@ -67,6 +67,19 @@ To install in another vault: copy `main.js`, `manifest.json`, `styles.css` to yo
 
 Full reference with all flags: [docs/cli.md](docs/cli.md)
 
+## Remote gateway (optional)
+
+Thin HTTP API for reviewing proposals from a phone or another machine:
+
+```bash
+export KMS_GATEWAY_TOKEN="your-secret-token"
+PYTHONPATH=. python -m kms.gateway.server --port 8780
+```
+
+3 endpoints: `GET /api/pending`, `POST /api/decisions`, `GET /api/status`. Decisions only — no vault access, no auto-apply. Run behind VPN/Tailscale.
+
+Full docs: [docs/gateway.md](docs/gateway.md)
+
 ## Architecture
 
 ```
@@ -93,6 +106,7 @@ Full architecture: [docs/architecture.md](docs/architecture.md) · ADRs: [docs/a
 | [docs/UPGRADE.md](docs/UPGRADE.md) | Version upgrade guide with migration steps |
 | [docs/workflow.md](docs/workflow.md) | Detailed pipeline workflow |
 | [docs/cli.md](docs/cli.md) | CLI command reference |
+| [docs/gateway.md](docs/gateway.md) | Remote gateway API (decisions via HTTP) |
 | [docs/architecture.md](docs/architecture.md) | System design, components, failure model |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records (10 ADRs) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer setup, testing, plugin development |

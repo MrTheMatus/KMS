@@ -1,34 +1,41 @@
-# ADR-005: Gateway zdalny dopiero po stabilnym lokalnym workflow
+# ADR-005: Gateway zdalny — cienki serwis do decyzji
 
-**Status:** Accepted → **Superseded by implementation (Etap 6)**  
-**Data:** 2026-03-23  
-**Aktualizacja:** 2026-03-24 — Etap 6 zrealizowany; gateway istnieje w `kms/gateway/server.py`.
+**Status:** Accepted → Superseded → **Re-implemented (v0.3.1, thin gateway)**
+**Data:** 2026-03-23
+**Aktualizacja:** 2026-04-04 — v0.3.1: thin gateway (stdlib only, zero deps)
 
 ## Kontekst
 
-Zdalne zatwierdzanie decyzji (np. z telefonu) jest wartościowe, ale nie jest wymagane do pierwszej działającej wersji i niesie koszt auth oraz ekspozycji sieciowej.
+Zdalne zatwierdzanie decyzji (np. z telefonu przez VPN) jest wartościowe, ale nie jest wymagane do pierwszej działającej wersji. Poprzednia implementacja (Flask-based, v0.2.0) została usunięta w v0.3.0 jako overengineering.
 
 ## Decyzja
 
-**Gateway** (cienki serwis tylko do decyzji) **nie** wchodzi do MVP. Najpierw lokalny workflow i markdown review; gateway w osobnym etapie, preferencyjnie za VPN/Tailscale.
+**Thin gateway** wchodzi jako osobny, opcjonalny komponent:
+- Zero zewnętrznych zależności (Python stdlib `http.server`)
+- Tylko 3 endpointy: `GET /api/pending`, `POST /api/decisions`, `GET /api/status`
+- Bearer token z `KMS_GATEWAY_TOKEN` env var
+- **Nie** ma dostępu do vaulta, modeli, AnythingLLM
+- **Nie** wykonuje apply — tylko ustawia decyzje w SQLite
+- Przeznaczony do uruchamiania za VPN/Tailscale
 
 ## Realizacja
 
-Gateway został wdrożony w ramach Etapu 6 roadmapy:
+`kms/gateway/server.py` — stdlib HTTPServer, ~200 LOC:
+- `GET /api/pending` — lista propozycji pending z metadanymi
+- `GET /api/status` — liczniki decyzji + ostatni batch
+- `POST /api/decisions` — ustaw decision na approve/reject/postpone
+- `GET /api/health` — liveness check
 
-- `GET /api/pending` + `POST /api/decisions` z tokenem Bearer.
-- Decyzje zapisywane w SQLite z wpisem `audit_log`.
-- Apply nadal na hoście (`apply_decisions`), nie w gateway.
-- Uruchamianie za VPN/Tailscale, zgodnie z założeniem.
-
-ADR pozostaje jako zapis **kolejności** (najpierw lokal, potem zdalnie) — ta kolejność została zachowana.
+Uruchomienie: `python -m kms.gateway.server --host 0.0.0.0 --port 8780`
 
 ## Uzasadnienie
 
-- Ograniczenie scope i powierzchni ataku
-- Szybsze MVP i prostsza architektura
+- Ograniczony scope: read pending + write decisions, nic więcej
+- Zero nowych zależności (no Flask, no FastAPI)
+- Apply nadal wymaga jawnego uruchomienia na hoście
+- Audyt: każda decyzja logowana z `reviewer=gateway`
 
 ## Konsekwencje
 
-**Plusy:** prostsze demo i mniej komponentów.  
-**Minusy:** brak mobilnego review do czasu gatewaya; późniejszy koszt projektowy API i auth.
+**Plusy:** mobilne review przez VPN, audytowalność, zero nowych deps
+**Minusy:** brak HTTPS (TLS na poziomie VPN/reverse proxy), brak WebSocket push
