@@ -62,13 +62,19 @@ def test_remove_embeddings_empty_noop() -> None:
 
 @patch.object(AnythingLLMClient, "_post_json")
 def test_workspace_chat_posts_chat_endpoint(mock_post: object) -> None:
-    mock_post.return_value = {"type": "textResponse", "textResponse": "hello", "close": True}
+    mock_post.return_value = {
+        "type": "textResponse",
+        "textResponse": "hello",
+        "close": True,
+    }
     client = AnythingLLMClient(
         base_url="http://localhost:3001",
         api_key="k",
         workspace_slug="my-ws",
     )
-    out = client.workspace_chat("prompt text", mode="chat", session_id="kms-merge-advisor-1")
+    out = client.workspace_chat(
+        "prompt text", mode="chat", session_id="kms-merge-advisor-1"
+    )
     assert out["textResponse"] == "hello"
     mock_post.assert_called_once()
     path, payload = mock_post.call_args[0]
@@ -81,5 +87,7 @@ def test_workspace_chat_posts_chat_endpoint(mock_post: object) -> None:
 def test_anythingllm_chat_text_response() -> None:
     from kms.app.anythingllm_client import anythingllm_chat_text_response
 
-    assert "hi" in anythingllm_chat_text_response({"textResponse": "hi", "type": "textResponse"})
+    assert "hi" in anythingllm_chat_text_response(
+        {"textResponse": "hi", "type": "textResponse"}
+    )
     assert "error" in anythingllm_chat_text_response({"error": "bad"}).lower()

@@ -43,117 +43,182 @@ class TriageSuggestion:
 # Patterns are case-insensitive, include English + Polish keywords.
 
 _DOMAIN_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("cpp", re.compile(
-        r"(?:c\+\+|cpp\b|constexpr|std::|raii|unique_ptr|shared_ptr|move.?semantics"
-        r"|template\s*<|destruktor|wirtualn[aey]|wskaźnik|nullptr|noexcept|vtable"
-        r"|polimorfizm|dziedziczen|klasa\s+bazow|operator\s+new|operator\s+delete"
-        r"|reinterpret_cast|static_cast|dynamic_cast|const_cast|sizeof\s*\("
-        r"|#include\s*<|namespace\s+\w|cmake|makefile|gcc|clang|g\+\+|msvc"
-        r"|stl\b|vector\s*<|map\s*<|deque|queue|stack|iterator"
-        r"|pamięci|zarządzanie\s+pamięcią|wycieki?\s+pamięci|smart.?pointer"
-        r"|goto\b|longjmp|setjmp|volatile|mutable|extern\s+\"C\")", re.I)),
-
-    ("angular", re.compile(
-        r"(?:angular(?:js)?|ngmodule|ng-|@component|@directive|@injectable|@pipe"
-        r"|rxjs|ngrx|observable|subscribe|behaviorsubject|mat-|matdialog"
-        r"|standalone.?component|signal[s]?\b|zoneless|change.?detection"
-        r"|template.?driven|reactive.?form|router.?outlet|lazy.?load"
-        r"|angular\.json|ng\s+serve|ng\s+build|ng\s+generate"
-        r"|komponent|dyrektywa|serwis|moduł.*angular|scss|styleurl)", re.I)),
-
-    ("sql", re.compile(
-        r"(?:\bsql\b|select\s+\w|insert\s+into|update\s+\w+\s+set|delete\s+from"
-        r"|inner\s+join|left\s+join|right\s+join|cross\s+join|group\s+by|order\s+by"
-        r"|having\b|where\s+\w|create\s+table|alter\s+table|drop\s+table"
-        r"|cursor\b|stored\s+proc|trigger\b|index\s+on|tablespace"
-        r"|postgresql|mysql|oracle\s+db|sqlite|mariadb|db2\b|mssql"
-        r"|transakcj|zapytani[ae]|baza\s+danych|relacyjn|normalizacj"
-        r"|optymalizacj.*zapyta|explain\s+plan|execution\s+plan)", re.I)),
-
-    ("electron-microscopy", re.compile(
-        r"(?:\btem\b|stem\b|electron\s+(?:dose|beam|microscop|diffraction)"
-        r"|beam.?heating|radiolysis|nanothermometr|cryo.?tem|cryo.?em"
-        r"|mikroskop.*elektron|wiązk[aię].*elektron|dyfrakc|transmisy"
-        r"|próbk[aię]|preparatyk|dawka.*elektron|dawkami\s+elektron"
-        r"|skaningow|eels\b|eds\b|haadf|saed|fib\b"
-        r"|faz[aęoy]|przemiany?\s+fazow|krystalograf|amorficzn"
-        r"|nanostruktur|nanomateriał|cienk[aie]\s+warstw)", re.I)),
-
-    ("devops", re.compile(
-        r"(?:docker|kubernetes|k8s|systemd|nginx|ci/cd|jenkins|airflow"
-        r"|openshift|terraform|ansible|helm|gitlab.?ci|github.?actions"
-        r"|pipeline|deploy|kontener|wdrożeni|infrastruktur"
-        r"|load.?balanc|reverse.?proxy|monitoring|prometheus|grafana"
-        r"|logowanie.*serwer|linux|bash|shell|cron|ssh|ssl/tls"
-        r"|dns\b|vpc\b|subnet|firewall|aws|gcp|azure(?!\s+devops))", re.I)),
-
-    ("java", re.compile(
-        r"(?:\bjava\b(?!script)|spring\s*boot|hibernate|jvm\b|jdk\b"
-        r"|maven|gradle|junit|mockito|lombok|@autowired|@bean"
-        r"|@controller|@service|@repository|servlet|tomcat|jakarta"
-        r"|collections\b|stream\(\)|optional\.|lambda.*java"
-        r"|interfejs.*java|klasa.*abstract|enum\s+\w+\s*\{)", re.I)),
-
-    ("typescript", re.compile(
-        r"(?:typescript|\.ts\b|interface\s+\w+\s*\{|type\s+\w+\s*="
-        r"|generic[s]?\b|enum\b.*typescript|promise<|async\s+function"
-        r"|decorator|tsconfig|tsc\b|strict.?mode.*ts"
-        r"|union\s+type|intersection|mapped\s+type|conditional\s+type"
-        r"|readonly\b|partial<|required<|pick<|omit<)", re.I)),
-
-    ("react", re.compile(
-        r"(?:react(?:\.js)?|jsx|tsx|usestate|useeffect|usecontext|usememo"
-        r"|usecallback|useref|usereducer|next\.?js|gatsby|redux"
-        r"|react.?router|react.?query|komponent.*react|hook[isy]?\b)", re.I)),
-
-    ("mainframe", re.compile(
-        r"(?:z/os|mainframe|tuxedo|cobol|jcl|cics|db2\s+for\s+z"
-        r"|ebcdic|vsam|ims\b|mvs\b|tso\b|ispf|rexx|racf"
-        r"|sysplex|lpar|coupling\s+facility)", re.I)),
-
-    ("career", re.compile(
-        r"(?:career|kariera|rekrutacj|cv\b|portfolio|rozmow[aęy]\s+kwalifikacy"
-        r"|gallup|strengths|negocjacj|awans|podwyżk|wynagrodzeni"
-        r"|kompetencj|rozwój\s+zawodow|ścieżk[aię]\s+kariery"
-        r"|lider|leadership|mentor|management|zarządzani"
-        r"|feedback|ocena\s+pracown|onboarding|offboarding"
-        r"|praca\s+zdalna|remote\s+work|freelanc|kontrakt\s+b2b"
-        r"|soft\s*skill|umiejętności\s+miękk|komunikacj[aię]"
-        r"|product\s+owner|scrum\s+master|agile\s+coach)", re.I)),
-
-    ("python", re.compile(
-        r"(?:\bpython\b|pandas|numpy|matplotlib|pip\b|pipenv|poetry"
-        r"|django|flask|fastapi|sqlalchemy|pydantic|pytest|mypy"
-        r"|virtualenv|venv|\.py\b|import\s+\w+|from\s+\w+\s+import"
-        r"|dekorator|generator|iterator.*python|list\s+comprehension"
-        r"|f-string|walrus|dataclass)", re.I)),
-
-    ("networking", re.compile(
-        r"(?:tcp/ip|udp\b|http[s]?\b|websocket|grpc|rest\s*api"
-        r"|protobuf|graphql|oauth|jwt\b|cors\b|ssl|tls"
-        r"|protokół|sieciow|routing|load.?balanc"
-        r"|mikroserwis|microservice|api\s+gateway|service\s+mesh)", re.I)),
-
-    ("research", re.compile(
-        r"(?:badani[ae]|research|eksperyment|hipotez|metodologi"
-        r"|analiz[aęy]\s+(?:danych|wyników|statystyczn)|publikacj"
-        r"|artykuł\s+naukow|paper\b|doi\b|abstract\b|peer.?review"
-        r"|plan\s+badawcz|wynik[ió]\s+bada|laboratori"
-        r"|nauk[aię]|naukow|akademi)", re.I)),
-
-    ("rust", re.compile(
-        r"(?:\brust\b|cargo\b|rustc|ownership|borrow.?checker"
-        r"|lifetime|trait\b|impl\b|enum\s*\{|match\s*\{|unwrap\(\)"
-        r"|option<|result<|tokio|async-std|wasm)", re.I)),
-
-    ("dotnet", re.compile(
-        r"(?:\.net|c#|csharp|asp\.net|blazor|entity\s+framework"
-        r"|nuget|mstest|xunit|linq|wpf|maui|xamarin"
-        r"|@model|razor|signalr)", re.I)),
-
-    ("go", re.compile(
-        r"(?:\bgo\b(?:lang)?|goroutine|channel\b|defer\b|func\s+\w+"
-        r"|package\s+main|go\s+mod|go\s+build|interface\s*\{\})", re.I)),
+    (
+        "cpp",
+        re.compile(
+            r"(?:c\+\+|cpp\b|constexpr|std::|raii|unique_ptr|shared_ptr|move.?semantics"
+            r"|template\s*<|destruktor|wirtualn[aey]|wskaźnik|nullptr|noexcept|vtable"
+            r"|polimorfizm|dziedziczen|klasa\s+bazow|operator\s+new|operator\s+delete"
+            r"|reinterpret_cast|static_cast|dynamic_cast|const_cast|sizeof\s*\("
+            r"|#include\s*<|namespace\s+\w|cmake|makefile|gcc|clang|g\+\+|msvc"
+            r"|stl\b|vector\s*<|map\s*<|deque|queue|stack|iterator"
+            r"|pamięci|zarządzanie\s+pamięcią|wycieki?\s+pamięci|smart.?pointer"
+            r"|goto\b|longjmp|setjmp|volatile|mutable|extern\s+\"C\")",
+            re.I,
+        ),
+    ),
+    (
+        "angular",
+        re.compile(
+            r"(?:angular(?:js)?|ngmodule|ng-|@component|@directive|@injectable|@pipe"
+            r"|rxjs|ngrx|observable|subscribe|behaviorsubject|mat-|matdialog"
+            r"|standalone.?component|signal[s]?\b|zoneless|change.?detection"
+            r"|template.?driven|reactive.?form|router.?outlet|lazy.?load"
+            r"|angular\.json|ng\s+serve|ng\s+build|ng\s+generate"
+            r"|komponent|dyrektywa|serwis|moduł.*angular|scss|styleurl)",
+            re.I,
+        ),
+    ),
+    (
+        "sql",
+        re.compile(
+            r"(?:\bsql\b|select\s+\w|insert\s+into|update\s+\w+\s+set|delete\s+from"
+            r"|inner\s+join|left\s+join|right\s+join|cross\s+join|group\s+by|order\s+by"
+            r"|having\b|where\s+\w|create\s+table|alter\s+table|drop\s+table"
+            r"|cursor\b|stored\s+proc|trigger\b|index\s+on|tablespace"
+            r"|postgresql|mysql|oracle\s+db|sqlite|mariadb|db2\b|mssql"
+            r"|transakcj|zapytani[ae]|baza\s+danych|relacyjn|normalizacj"
+            r"|optymalizacj.*zapyta|explain\s+plan|execution\s+plan)",
+            re.I,
+        ),
+    ),
+    (
+        "electron-microscopy",
+        re.compile(
+            r"(?:\btem\b|stem\b|electron\s+(?:dose|beam|microscop|diffraction)"
+            r"|beam.?heating|radiolysis|nanothermometr|cryo.?tem|cryo.?em"
+            r"|mikroskop.*elektron|wiązk[aię].*elektron|dyfrakc|transmisy"
+            r"|próbk[aię]|preparatyk|dawka.*elektron|dawkami\s+elektron"
+            r"|skaningow|eels\b|eds\b|haadf|saed|fib\b"
+            r"|faz[aęoy]|przemiany?\s+fazow|krystalograf|amorficzn"
+            r"|nanostruktur|nanomateriał|cienk[aie]\s+warstw)",
+            re.I,
+        ),
+    ),
+    (
+        "devops",
+        re.compile(
+            r"(?:docker|kubernetes|k8s|systemd|nginx|ci/cd|jenkins|airflow"
+            r"|openshift|terraform|ansible|helm|gitlab.?ci|github.?actions"
+            r"|pipeline|deploy|kontener|wdrożeni|infrastruktur"
+            r"|load.?balanc|reverse.?proxy|monitoring|prometheus|grafana"
+            r"|logowanie.*serwer|linux|bash|shell|cron|ssh|ssl/tls"
+            r"|dns\b|vpc\b|subnet|firewall|aws|gcp|azure(?!\s+devops))",
+            re.I,
+        ),
+    ),
+    (
+        "java",
+        re.compile(
+            r"(?:\bjava\b(?!script)|spring\s*boot|hibernate|jvm\b|jdk\b"
+            r"|maven|gradle|junit|mockito|lombok|@autowired|@bean"
+            r"|@controller|@service|@repository|servlet|tomcat|jakarta"
+            r"|collections\b|stream\(\)|optional\.|lambda.*java"
+            r"|interfejs.*java|klasa.*abstract|enum\s+\w+\s*\{)",
+            re.I,
+        ),
+    ),
+    (
+        "typescript",
+        re.compile(
+            r"(?:typescript|\.ts\b|interface\s+\w+\s*\{|type\s+\w+\s*="
+            r"|generic[s]?\b|enum\b.*typescript|promise<|async\s+function"
+            r"|decorator|tsconfig|tsc\b|strict.?mode.*ts"
+            r"|union\s+type|intersection|mapped\s+type|conditional\s+type"
+            r"|readonly\b|partial<|required<|pick<|omit<)",
+            re.I,
+        ),
+    ),
+    (
+        "react",
+        re.compile(
+            r"(?:react(?:\.js)?|jsx|tsx|usestate|useeffect|usecontext|usememo"
+            r"|usecallback|useref|usereducer|next\.?js|gatsby|redux"
+            r"|react.?router|react.?query|komponent.*react|hook[isy]?\b)",
+            re.I,
+        ),
+    ),
+    (
+        "mainframe",
+        re.compile(
+            r"(?:z/os|mainframe|tuxedo|cobol|jcl|cics|db2\s+for\s+z"
+            r"|ebcdic|vsam|ims\b|mvs\b|tso\b|ispf|rexx|racf"
+            r"|sysplex|lpar|coupling\s+facility)",
+            re.I,
+        ),
+    ),
+    (
+        "career",
+        re.compile(
+            r"(?:career|kariera|rekrutacj|cv\b|portfolio|rozmow[aęy]\s+kwalifikacy"
+            r"|gallup|strengths|negocjacj|awans|podwyżk|wynagrodzeni"
+            r"|kompetencj|rozwój\s+zawodow|ścieżk[aię]\s+kariery"
+            r"|lider|leadership|mentor|management|zarządzani"
+            r"|feedback|ocena\s+pracown|onboarding|offboarding"
+            r"|praca\s+zdalna|remote\s+work|freelanc|kontrakt\s+b2b"
+            r"|soft\s*skill|umiejętności\s+miękk|komunikacj[aię]"
+            r"|product\s+owner|scrum\s+master|agile\s+coach)",
+            re.I,
+        ),
+    ),
+    (
+        "python",
+        re.compile(
+            r"(?:\bpython\b|pandas|numpy|matplotlib|pip\b|pipenv|poetry"
+            r"|django|flask|fastapi|sqlalchemy|pydantic|pytest|mypy"
+            r"|virtualenv|venv|\.py\b|import\s+\w+|from\s+\w+\s+import"
+            r"|dekorator|generator|iterator.*python|list\s+comprehension"
+            r"|f-string|walrus|dataclass)",
+            re.I,
+        ),
+    ),
+    (
+        "networking",
+        re.compile(
+            r"(?:tcp/ip|udp\b|http[s]?\b|websocket|grpc|rest\s*api"
+            r"|protobuf|graphql|oauth|jwt\b|cors\b|ssl|tls"
+            r"|protokół|sieciow|routing|load.?balanc"
+            r"|mikroserwis|microservice|api\s+gateway|service\s+mesh)",
+            re.I,
+        ),
+    ),
+    (
+        "research",
+        re.compile(
+            r"(?:badani[ae]|research|eksperyment|hipotez|metodologi"
+            r"|analiz[aęy]\s+(?:danych|wyników|statystyczn)|publikacj"
+            r"|artykuł\s+naukow|paper\b|doi\b|abstract\b|peer.?review"
+            r"|plan\s+badawcz|wynik[ió]\s+bada|laboratori"
+            r"|nauk[aię]|naukow|akademi)",
+            re.I,
+        ),
+    ),
+    (
+        "rust",
+        re.compile(
+            r"(?:\brust\b|cargo\b|rustc|ownership|borrow.?checker"
+            r"|lifetime|trait\b|impl\b|enum\s*\{|match\s*\{|unwrap\(\)"
+            r"|option<|result<|tokio|async-std|wasm)",
+            re.I,
+        ),
+    ),
+    (
+        "dotnet",
+        re.compile(
+            r"(?:\.net|c#|csharp|asp\.net|blazor|entity\s+framework"
+            r"|nuget|mstest|xunit|linq|wpf|maui|xamarin"
+            r"|@model|razor|signalr)",
+            re.I,
+        ),
+    ),
+    (
+        "go",
+        re.compile(
+            r"(?:\bgo\b(?:lang)?|goroutine|channel\b|defer\b|func\s+\w+"
+            r"|package\s+main|go\s+mod|go\s+build|interface\s*\{\})",
+            re.I,
+        ),
+    ),
 ]
 
 # ── Topic extraction keywords ───────────────────────────────────────
@@ -161,73 +226,227 @@ _DOMAIN_PATTERNS: list[tuple[str, re.Pattern]] = [
 
 _TOPIC_KEYWORDS: dict[str, list[str]] = {
     "performance": [
-        "wydajność", "performance", "optymalizacja", "optimization", "benchmark",
-        "latency", "throughput", "cache", "profil", "bottleneck", "szybkość",
-        "opóźnieni", "pamięć", "memory", "cpu", "gpu",
+        "wydajność",
+        "performance",
+        "optymalizacja",
+        "optimization",
+        "benchmark",
+        "latency",
+        "throughput",
+        "cache",
+        "profil",
+        "bottleneck",
+        "szybkość",
+        "opóźnieni",
+        "pamięć",
+        "memory",
+        "cpu",
+        "gpu",
     ],
     "migration": [
-        "migracja", "migration", "upgrade", "refactor", "modernizacja",
-        "legacy", "przepisywani", "konwersja", "portowani", "backward.?compat",
+        "migracja",
+        "migration",
+        "upgrade",
+        "refactor",
+        "modernizacja",
+        "legacy",
+        "przepisywani",
+        "konwersja",
+        "portowani",
+        "backward.?compat",
     ],
     "debugging": [
-        "debug", "błąd", "error", "troubleshoot", "fix", "diagnoz",
-        "stack.?trace", "exception", "crash", "segfault", "core.?dump",
-        "logowani", "breakpoint", "inspect",
+        "debug",
+        "błąd",
+        "error",
+        "troubleshoot",
+        "fix",
+        "diagnoz",
+        "stack.?trace",
+        "exception",
+        "crash",
+        "segfault",
+        "core.?dump",
+        "logowani",
+        "breakpoint",
+        "inspect",
     ],
     "architecture": [
-        "architektura", "architecture", "pattern", "wzorzec", "microservice",
-        "monolith", "clean.?arch", "hexagonal", "cqrs", "event.?sourc",
-        "domain.?driven", "ddd", "solid", "dependency.?inject", "ioc",
-        "warstwa", "layer", "moduł", "component",
+        "architektura",
+        "architecture",
+        "pattern",
+        "wzorzec",
+        "microservice",
+        "monolith",
+        "clean.?arch",
+        "hexagonal",
+        "cqrs",
+        "event.?sourc",
+        "domain.?driven",
+        "ddd",
+        "solid",
+        "dependency.?inject",
+        "ioc",
+        "warstwa",
+        "layer",
+        "moduł",
+        "component",
     ],
     "security": [
-        "bezpieczeństwo", "security", "injection", "xss", "csrf", "rodo", "gdpr",
-        "compliance", "auth", "uwierzytelni", "autoryzacj", "szyfrowanie",
-        "encryption", "vulnerability", "penetr",
+        "bezpieczeństwo",
+        "security",
+        "injection",
+        "xss",
+        "csrf",
+        "rodo",
+        "gdpr",
+        "compliance",
+        "auth",
+        "uwierzytelni",
+        "autoryzacj",
+        "szyfrowanie",
+        "encryption",
+        "vulnerability",
+        "penetr",
     ],
     "testing": [
-        "test", "e2e", "karma", "cypress", "junit", "pytest", "mock",
-        "stub", "tdd", "bdd", "coverage", "assertion", "spec",
-        "integracyjn", "jednostkow", "automatyczn.*test",
+        "test",
+        "e2e",
+        "karma",
+        "cypress",
+        "junit",
+        "pytest",
+        "mock",
+        "stub",
+        "tdd",
+        "bdd",
+        "coverage",
+        "assertion",
+        "spec",
+        "integracyjn",
+        "jednostkow",
+        "automatyczn.*test",
     ],
     "data-science": [
-        "pandas", "dataframe", "matplotlib", "analiza danych", "chemoinformatyka",
-        "machine.?learning", "deep.?learning", "neural", "model.*train",
-        "dataset", "feature", "regression", "classification",
+        "pandas",
+        "dataframe",
+        "matplotlib",
+        "analiza danych",
+        "chemoinformatyka",
+        "machine.?learning",
+        "deep.?learning",
+        "neural",
+        "model.*train",
+        "dataset",
+        "feature",
+        "regression",
+        "classification",
     ],
     "networking": [
-        "grpc", "rpc", "protobuf", "connect", "websocket", "rest.?api",
-        "graphql", "http", "tcp", "protokół", "endpoint", "api",
+        "grpc",
+        "rpc",
+        "protobuf",
+        "connect",
+        "websocket",
+        "rest.?api",
+        "graphql",
+        "http",
+        "tcp",
+        "protokół",
+        "endpoint",
+        "api",
     ],
     "algorithms": [
-        "algorytm", "algorithm", "sort", "linked.?list", "tree",
-        "complexity", "big.?o", "rekurencj", "dynamic.?program",
-        "graph", "binary.?search", "hash.?map",
+        "algorytm",
+        "algorithm",
+        "sort",
+        "linked.?list",
+        "tree",
+        "complexity",
+        "big.?o",
+        "rekurencj",
+        "dynamic.?program",
+        "graph",
+        "binary.?search",
+        "hash.?map",
     ],
     "management": [
-        "zarządzani", "management", "projekt", "sprint", "backlog",
-        "scrum", "kanban", "agile", "waterfall", "deadline", "estymacj",
-        "planowani", "priorytet", "stakeholder", "roadmap",
+        "zarządzani",
+        "management",
+        "projekt",
+        "sprint",
+        "backlog",
+        "scrum",
+        "kanban",
+        "agile",
+        "waterfall",
+        "deadline",
+        "estymacj",
+        "planowani",
+        "priorytet",
+        "stakeholder",
+        "roadmap",
     ],
     "research": [
-        "badani", "research", "eksperyment", "hipotez", "metodologi",
-        "analiz.*wyników", "publikacj", "naukow", "laboratori",
-        "obserwacj", "próbk", "pomiar",
+        "badani",
+        "research",
+        "eksperyment",
+        "hipotez",
+        "metodologi",
+        "analiz.*wyników",
+        "publikacj",
+        "naukow",
+        "laboratori",
+        "obserwacj",
+        "próbk",
+        "pomiar",
     ],
     "career": [
-        "kariera", "career", "rekrutacj", "rozmowa.*kwalifikac",
-        "negocjacj", "awans", "podwyżk", "kompetencj", "cv",
-        "portfolio", "mentor", "lider", "leadership", "onboarding",
+        "kariera",
+        "career",
+        "rekrutacj",
+        "rozmowa.*kwalifikac",
+        "negocjacj",
+        "awans",
+        "podwyżk",
+        "kompetencj",
+        "cv",
+        "portfolio",
+        "mentor",
+        "lider",
+        "leadership",
+        "onboarding",
     ],
     "frontend": [
-        "frontend", "css", "scss", "html", "dom", "responsive",
-        "layout", "flexbox", "grid", "animation", "ux", "ui",
-        "stylowani", "interfejs.*użytkownik",
+        "frontend",
+        "css",
+        "scss",
+        "html",
+        "dom",
+        "responsive",
+        "layout",
+        "flexbox",
+        "grid",
+        "animation",
+        "ux",
+        "ui",
+        "stylowani",
+        "interfejs.*użytkownik",
     ],
     "backend": [
-        "backend", "serwer", "server", "baza.*danych", "database",
-        "orm", "endpoint", "middleware", "cache.*serwer",
-        "kolejk", "queue", "worker", "cron",
+        "backend",
+        "serwer",
+        "server",
+        "baza.*danych",
+        "database",
+        "orm",
+        "endpoint",
+        "middleware",
+        "cache.*serwer",
+        "kolejk",
+        "queue",
+        "worker",
+        "cron",
     ],
 }
 
@@ -345,7 +564,9 @@ def check_contradiction(
         return {"contradiction": False, "severity": "none", "explanation": ""}
 
 
-def llm_classify(client: LLMClient, text: str, title: str = "") -> tuple[str, list[str]]:
+def llm_classify(
+    client: LLMClient, text: str, title: str = ""
+) -> tuple[str, list[str]]:
     """Use LLM to classify domain and topics.  Returns (domain, topics)."""
     prompt = _CLASSIFY_PROMPT.format(title=title, content=text[:3000])
     try:
@@ -439,10 +660,17 @@ def triage_against_permanent_notes(
 
     if matches and matches[0].score >= 0.12:
         top = matches[0]
-        reason_detail = top.match_reason if hasattr(top, "match_reason") and top.match_reason else ""
+        reason_detail = (
+            top.match_reason
+            if hasattr(top, "match_reason") and top.match_reason
+            else ""
+        )
 
         # If contradiction found, override action to flag for human review
-        if contradiction.get("contradiction") and contradiction.get("severity") == "high":
+        if (
+            contradiction.get("contradiction")
+            and contradiction.get("severity") == "high"
+        ):
             perm_action = "review-contradiction"
             reasoning = (
                 f"⚠ SPRZECZNOŚĆ z «{top.title}» (score={top.score:.2f}): "

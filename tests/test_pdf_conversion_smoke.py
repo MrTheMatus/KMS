@@ -20,4 +20,3 @@ def test_convert_minimal_pdf_pick_best() -> None:
     assert result.scores
     assert result.converter in result.scores
     assert any("pick=best scores:" in w for w in result.warnings)
-

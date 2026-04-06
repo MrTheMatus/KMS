@@ -44,7 +44,9 @@ def minimal_cfg() -> dict[str, Any]:
 
 
 class TestLoadConfig:
-    def test_loads_explicit_path(self, tmp_path: Path, minimal_cfg: dict[str, Any]) -> None:
+    def test_loads_explicit_path(
+        self, tmp_path: Path, minimal_cfg: dict[str, Any]
+    ) -> None:
         p = tmp_path / "custom.yaml"
         p.write_text(yaml.safe_dump(minimal_cfg), encoding="utf-8")
         cfg = load_config(p)
@@ -55,7 +57,9 @@ class TestLoadConfig:
         cfg = load_config(bogus)
         assert "vault" in cfg, "should fall back to config.example.yaml"
 
-    def test_missing_all_configs_raises(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_missing_all_configs_raises(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("kms.app.config.project_root", lambda: tmp_path)
         with pytest.raises(FileNotFoundError):
             load_config(tmp_path / "nonexistent.yaml")
@@ -66,14 +70,24 @@ class TestLoadConfig:
         with pytest.raises(ValueError, match="mapping"):
             load_config(p)
 
-    def test_env_overrides_vault_root(self, tmp_path: Path, minimal_cfg: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_env_overrides_vault_root(
+        self,
+        tmp_path: Path,
+        minimal_cfg: dict[str, Any],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         p = tmp_path / "c.yaml"
         p.write_text(yaml.safe_dump(minimal_cfg), encoding="utf-8")
         monkeypatch.setenv("KMS_VAULT_ROOT", "/custom/vault")
         cfg = load_config(p)
         assert cfg["vault"]["root"] == "/custom/vault"
 
-    def test_env_overrides_db_path(self, tmp_path: Path, minimal_cfg: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_env_overrides_db_path(
+        self,
+        tmp_path: Path,
+        minimal_cfg: dict[str, Any],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         p = tmp_path / "c.yaml"
         p.write_text(yaml.safe_dump(minimal_cfg), encoding="utf-8")
         monkeypatch.setenv("KMS_DATABASE_PATH", "/tmp/custom.db")
@@ -105,7 +119,18 @@ class TestAbsPath:
 class TestVaultPaths:
     def test_returns_expected_keys(self, minimal_cfg: dict[str, Any]) -> None:
         vp = vault_paths(minimal_cfg)
-        expected_keys = {"root", "admin", "inbox", "sources_web", "sources_pdf", "source_notes", "permanent_notes", "archive", "review_queue", "reports"}
+        expected_keys = {
+            "root",
+            "admin",
+            "inbox",
+            "sources_web",
+            "sources_pdf",
+            "source_notes",
+            "permanent_notes",
+            "archive",
+            "review_queue",
+            "reports",
+        }
         assert set(vp.keys()) == expected_keys
 
     def test_all_paths_are_absolute(self, minimal_cfg: dict[str, Any]) -> None:

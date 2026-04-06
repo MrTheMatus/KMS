@@ -27,7 +27,9 @@ def main() -> int:
 
     api_key = os.getenv(str(api_cfg.get("api_key_env", "ANYTHINGLLM_API_KEY")), "")
     if not api_key:
-        _LOG.error("Missing API key env %s", api_cfg.get("api_key_env", "ANYTHINGLLM_API_KEY"))
+        _LOG.error(
+            "Missing API key env %s", api_cfg.get("api_key_env", "ANYTHINGLLM_API_KEY")
+        )
         return 2
 
     client = AnythingLLMClient(
@@ -57,7 +59,14 @@ def main() -> int:
         abs_file = (vp["root"] / rel).resolve()
         if not abs_file.is_file():
             failed += 1
-            audit(conn, "anythingllm_sync", "proposal", str(row["proposal_id"]), {"path": rel}, "missing_file")
+            audit(
+                conn,
+                "anythingllm_sync",
+                "proposal",
+                str(row["proposal_id"]),
+                {"path": rel},
+                "missing_file",
+            )
             continue
         try:
             if args.dry_run:
@@ -95,7 +104,14 @@ def main() -> int:
                 (int(row["proposal_id"]),),
             )
             conn.commit()
-            audit(conn, "anythingllm_sync", "proposal", str(row["proposal_id"]), {"path": rel}, str(exc))
+            audit(
+                conn,
+                "anythingllm_sync",
+                "proposal",
+                str(row["proposal_id"]),
+                {"path": rel},
+                str(exc),
+            )
             _LOG.error("Sync failed for %s: %s", rel, exc)
 
     recompute_lifecycle(conn)
@@ -106,4 +122,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

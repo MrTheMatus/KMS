@@ -68,7 +68,9 @@ def main() -> int:
                 {"hash": h, "other_paths": [o["path"] for o in others]},
                 None,
             )
-        cur = conn.execute("SELECT id, hash, status FROM items WHERE path = ?", (rel_s,))
+        cur = conn.execute(
+            "SELECT id, hash, status FROM items WHERE path = ?", (rel_s,)
+        )
         row = cur.fetchone()
         if row is None:
             conn.execute(

@@ -30,7 +30,9 @@ def _multipart_form_data_file(
     chunks.append(f"--{boundary}".encode("ascii"))
     chunks.append(crlf)
     chunks.append(
-        f'Content-Disposition: form-data; name="file"; filename="{name}"'.encode("utf-8")
+        f'Content-Disposition: form-data; name="file"; filename="{name}"'.encode(
+            "utf-8"
+        )
     )
     chunks.append(crlf)
     chunks.append(b"Content-Type: " + part_mime)

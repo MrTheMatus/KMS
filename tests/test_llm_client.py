@@ -126,9 +126,11 @@ class _MockHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):  # noqa: N802
         if "/v1/models" in self.path:
-            body = json.dumps({
-                "data": [{"id": "test-model"}, {"id": "qwen2.5:14b"}],
-            }).encode()
+            body = json.dumps(
+                {
+                    "data": [{"id": "test-model"}, {"id": "qwen2.5:14b"}],
+                }
+            ).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -146,11 +148,18 @@ class _MockHandler(BaseHTTPRequestHandler):
             # Echo back the last user message
             messages = payload.get("messages", [])
             user_msg = messages[-1]["content"] if messages else "empty"
-            body = json.dumps({
-                "choices": [{
-                    "message": {"role": "assistant", "content": f"Echo: {user_msg}"},
-                }],
-            }).encode()
+            body = json.dumps(
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "content": f"Echo: {user_msg}",
+                            },
+                        }
+                    ],
+                }
+            ).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -195,10 +204,12 @@ class TestLLMClientIntegration:
 
     def test_chat(self, mock_llm_server):
         c = LLMClient(base_url=mock_llm_server, model="test-model")
-        result = c.chat([
-            {"role": "system", "content": "Be helpful"},
-            {"role": "user", "content": "Hi"},
-        ])
+        result = c.chat(
+            [
+                {"role": "system", "content": "Be helpful"},
+                {"role": "user", "content": "Hi"},
+            ]
+        )
         assert "Echo: Hi" in result
 
     def test_unreachable_server(self):

@@ -205,9 +205,9 @@
 /* Search Modal                                     */
 /* ════════════════════════════════════════════════ */
 
-.kms-search-modal {
-  max-width: min(700px, 90vw);
-  width: 700px;
+.kms-search-modal.modal {
+  max-width: 95vw;
+  width: 900px;
 }
 
 .kms-search-modal h3 { margin-bottom: 12px; }
@@ -417,9 +417,9 @@
 /* Detail Modal                                     */
 /* ════════════════════════════════════════════════ */
 
-.kms-detail-modal {
-  max-width: min(650px, 90vw);
-  width: 650px;
+.kms-detail-modal.modal {
+  max-width: 95vw;
+  width: 900px;
 }
 
 .kms-detail-modal h3 { margin-bottom: 12px; }
@@ -491,9 +491,9 @@
 /* Revert Modal                                     */
 /* ════════════════════════════════════════════════ */
 
-.kms-revert-modal {
-  max-width: min(500px, 90vw);
-  width: 500px;
+.kms-revert-modal.modal {
+  max-width: 95vw;
+  width: 700px;
 }
 
 .kms-revert-modal p {
@@ -687,9 +687,9 @@
 /* Onboarding Wizard                                */
 /* ════════════════════════════════════════════════ */
 
-.kms-wizard-modal {
-  max-width: min(560px, 90vw);
-  width: 560px;
+.kms-wizard-modal.modal {
+  max-width: 95vw;
+  width: 800px;
 }
 
 /* Step indicator */
@@ -845,9 +845,9 @@
 /* Confirm Modal                                    */
 /* ════════════════════════════════════════════════ */
 
-.kms-confirm-modal {
-  max-width: min(400px, 90vw);
-  width: 400px;
+.kms-confirm-modal.modal {
+  max-width: 95vw;
+  width: 550px;
 }
 
 .kms-confirm-modal p {
@@ -866,9 +866,9 @@
 /* Progress Modal                                   */
 /* ════════════════════════════════════════════════ */
 
-.kms-progress-modal {
-  max-width: min(500px, 90vw);
-  width: 500px;
+.kms-progress-modal.modal {
+  max-width: 95vw;
+  width: 700px;
 }
 
 .kms-progress-list {
@@ -951,336 +951,6 @@
   gap: 8px;
   justify-content: flex-end;
   margin-top: 12px;
-}
-
-/* ════════════════════════════════════════════════ */
-/* Search Modal                                     */
-/* ════════════════════════════════════════════════ */
-
-.kms-search-modal {
-  max-width: 700px;
-  width: 700px;
-}
-
-.kms-search-modal h3 {
-  margin-bottom: 12px;
-}
-
-.kms-search-input-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.kms-search-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-primary);
-  color: var(--text-normal);
-  font-size: 1em;
-}
-
-.kms-search-input:focus {
-  border-color: var(--interactive-accent);
-  outline: none;
-}
-
-.kms-search-toggle {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  white-space: nowrap;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.kms-search-results {
-  max-height: 450px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.kms-search-hint,
-.kms-search-loading,
-.kms-search-empty {
-  color: var(--text-faint);
-  font-style: italic;
-  text-align: center;
-  padding: 20px 0;
-}
-
-.kms-search-error {
-  color: #f44336;
-  padding: 10px 0;
-}
-
-.kms-search-count {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.kms-search-result {
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.kms-search-result:hover {
-  background: var(--background-modifier-hover);
-}
-
-.kms-search-result-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.kms-search-pid {
-  font-weight: 700;
-  font-size: 0.9em;
-}
-
-.kms-search-decision {
-  font-size: 0.75em;
-  font-weight: 600;
-  padding: 1px 8px;
-  border-radius: 3px;
-  margin-left: auto;
-  text-transform: uppercase;
-}
-
-.kms-search-decision.kms-decision-pending {
-  background: var(--background-modifier-hover);
-  color: var(--text-muted);
-}
-
-.kms-search-decision.kms-decision-approve {
-  background: #4caf5022;
-  color: #4caf50;
-}
-
-.kms-search-decision.kms-decision-reject {
-  background: #f4433622;
-  color: #f44336;
-}
-
-.kms-search-decision.kms-decision-postpone {
-  background: #ff980022;
-  color: #ff9800;
-}
-
-.kms-search-path {
-  font-size: 0.82em;
-  color: var(--text-muted);
-  font-family: var(--font-monospace);
-  margin-bottom: 4px;
-}
-
-.kms-search-topics {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-.kms-search-summary {
-  font-size: 0.82em;
-  color: var(--text-faint);
-  line-height: 1.4;
-}
-
-/* ── Search action buttons ── */
-.kms-search-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.kms-search-action-btn {
-  padding: 3px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
-  cursor: pointer;
-  font-size: 0.78em;
-  font-weight: 500;
-  background: var(--background-primary);
-  color: var(--text-muted);
-  transition: all 0.15s ease;
-}
-
-.kms-search-action-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
-}
-
-.kms-action-goto {
-  border-color: var(--interactive-accent);
-  color: var(--interactive-accent);
-}
-
-.kms-action-source {
-  color: var(--text-muted);
-}
-
-.kms-action-detail {
-  color: #1976d2;
-  border-color: #1976d244;
-}
-
-.kms-action-revert {
-  color: #f44336;
-  border-color: #f4433644;
-}
-
-.kms-action-revert:hover {
-  background: #f4433622;
-}
-
-/* ── Clickable proposal title ── */
-.kms-clickable {
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 3px;
-}
-
-.kms-clickable:hover {
-  color: var(--interactive-accent);
-}
-
-/* ════════════════════════════════════════════════ */
-/* Detail Modal                                     */
-/* ════════════════════════════════════════════════ */
-
-.kms-detail-modal {
-  max-width: 650px;
-  width: 650px;
-}
-
-.kms-detail-modal h3 {
-  margin-bottom: 12px;
-}
-
-.kms-detail-body {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.kms-detail-section {
-  margin-bottom: 14px;
-}
-
-.kms-detail-section h4 {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  padding-bottom: 4px;
-}
-
-.kms-detail-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88em;
-}
-
-.kms-detail-table tr {
-  border-bottom: 1px solid var(--background-modifier-border-hover);
-}
-
-.kms-detail-table tr:last-child {
-  border-bottom: none;
-}
-
-.kms-detail-label {
-  color: var(--text-muted);
-  font-weight: 500;
-  padding: 4px 12px 4px 0;
-  white-space: nowrap;
-  width: 1%;
-  vertical-align: top;
-}
-
-.kms-detail-value {
-  color: var(--text-normal);
-  padding: 4px 0;
-  word-break: break-word;
-  font-family: var(--font-monospace);
-  font-size: 0.92em;
-}
-
-.kms-detail-summary {
-  font-size: 0.85em;
-  color: var(--text-faint);
-  line-height: 1.5;
-  font-style: italic;
-}
-
-.kms-detail-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--background-modifier-border);
-}
-
-/* ════════════════════════════════════════════════ */
-/* Revert Modal                                     */
-/* ════════════════════════════════════════════════ */
-
-.kms-revert-modal {
-  max-width: 500px;
-  width: 500px;
-}
-
-.kms-revert-modal p {
-  font-size: 0.88em;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.kms-revert-input-row {
-  margin-bottom: 12px;
-}
-
-.kms-revert-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-primary);
-  color: var(--text-normal);
-  font-size: 1em;
-}
-
-.kms-revert-input:focus {
-  border-color: var(--interactive-accent);
-  outline: none;
-}
-
-.kms-revert-preview {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: var(--background-secondary);
-  border-radius: 6px;
-  min-height: 20px;
-}
-
-.kms-revert-btn-row {
-  display: flex;
-  gap: 8px;
 }
 
 /* ════════════════════════════════════════════════ */
@@ -1796,9 +1466,9 @@
 /* Notice Modal (replaces toasts for errors)        */
 /* ════════════════════════════════════════════════ */
 
-.kms-notice-modal {
-  max-width: min(500px, 90vw);
-  width: 500px;
+.kms-notice-modal.modal {
+  max-width: 95vw;
+  width: 650px;
 }
 
 .kms-notice-modal h3 {

@@ -68,7 +68,10 @@ def main() -> int:
         if llm and llm.is_available():
             _LOG.info("LLM client ready: %s", llm)
         elif llm:
-            _LOG.warning("LLM endpoint not reachable (%s) — falling back to heuristic", llm.base_url)
+            _LOG.warning(
+                "LLM endpoint not reachable (%s) — falling back to heuristic",
+                llm.base_url,
+            )
             llm = None
         else:
             _LOG.warning("No LLM configured — falling back to heuristic")
@@ -98,7 +101,9 @@ def main() -> int:
             triage = triage_against_permanent_notes(
                 source_text,
                 vp["permanent_notes"],
-                provider=str(cfg.get("runtime", {}).get("llm_triage_provider", "heuristic")),
+                provider=str(
+                    cfg.get("runtime", {}).get("llm_triage_provider", "heuristic")
+                ),
                 llm_client=llm,
                 title=title,
             )
@@ -148,7 +153,12 @@ def main() -> int:
         # Generate AI summary if available
         ai_summary = None
         if llm and getattr(args, "ai_summary", False):
-            _LOG.info("Generating AI summary %d/%d: %s", len(blocks) + 1, len(rows), row["path"])
+            _LOG.info(
+                "Generating AI summary %d/%d: %s",
+                len(blocks) + 1,
+                len(rows),
+                row["path"],
+            )
             ai_summary = _generate_summary(llm, row, vp)
             if ai_summary:
                 ai_summaries_count += 1
@@ -197,7 +207,13 @@ def main() -> int:
     conn.commit()
     recompute_lifecycle(conn)
     conn.close()
-    _LOG.info("Wrote %s (%s blocks, %s AI summaries via %s)", rq_path, len(blocks), ai_summaries_count, ai_backend)
+    _LOG.info(
+        "Wrote %s (%s blocks, %s AI summaries via %s)",
+        rq_path,
+        len(blocks),
+        ai_summaries_count,
+        ai_backend,
+    )
     print(str(rq_path))
     return 0
 
@@ -292,12 +308,14 @@ def _generate_summary(
 
         if text and len(text) > 20:
             # Strip non-Latin scripts that Qwen sometimes injects (CJK, Cyrillic, Thai, etc.)
-            text = re.sub(r'[\u0400-\u04ff\u0500-\u052f]+', '', text)  # Cyrillic
-            text = re.sub(r'[\u0e00-\u0e7f]+', '', text)  # Thai
-            text = re.sub(r'[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+', '', text)  # CJK
+            text = re.sub(r"[\u0400-\u04ff\u0500-\u052f]+", "", text)  # Cyrillic
+            text = re.sub(r"[\u0e00-\u0e7f]+", "", text)  # Thai
+            text = re.sub(
+                r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+", "", text
+            )  # CJK
             # Clean up leftover artifacts (double spaces, trailing colons, etc.)
-            text = re.sub(r'\s{2,}', ' ', text).strip()
-            text = re.sub(r'[：:]\s*$', '.', text)
+            text = re.sub(r"\s{2,}", " ", text).strip()
+            text = re.sub(r"[：:]\s*$", ".", text)
             if len(text) > 20:
                 return text
     except Exception as exc:  # noqa: BLE001
@@ -305,7 +323,9 @@ def _generate_summary(
     return None
 
 
-def _body_for_proposal(row: dict, vp: dict[str, Path], *, ai_summary: str | None = None) -> str:
+def _body_for_proposal(
+    row: dict, vp: dict[str, Path], *, ai_summary: str | None = None
+) -> str:
     _ = vp
     triage_data = _triage(row)
     domain = triage_data.get("suggested_domain", "")

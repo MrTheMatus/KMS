@@ -33,7 +33,13 @@ def main() -> int:
             if f.is_file() and not f.name.startswith("."):
                 inbox_files += 1
                 suf = f.suffix.lower()
-                kind = "pdf" if suf == ".pdf" else "markdown" if suf in (".md", ".markdown") else "other"
+                kind = (
+                    "pdf"
+                    if suf == ".pdf"
+                    else "markdown"
+                    if suf in (".md", ".markdown")
+                    else "other"
+                )
                 inbox_by_kind[kind] = inbox_by_kind.get(kind, 0) + 1
 
     # --- Proposal stats ---
@@ -113,72 +119,86 @@ def main() -> int:
 
     # Index status (only if artifacts exist)
     if index_counts:
-        lines.extend([
-            "## Indeksowanie (AnythingLLM)",
-            "",
-            "| Status | Ilość |",
-            "|--------|-------|",
-        ])
+        lines.extend(
+            [
+                "## Indeksowanie (AnythingLLM)",
+                "",
+                "| Status | Ilość |",
+                "|--------|-------|",
+            ]
+        )
         for status in ("ok", "pending", "failed"):
             cnt = index_counts.get(status, 0)
             if cnt:
-                icon = {"ok": "OK", "pending": "Pending", "failed": "FAILED"}.get(status, status)
+                icon = {"ok": "OK", "pending": "Pending", "failed": "FAILED"}.get(
+                    status, status
+                )
                 lines.append(f"| {icon} | {cnt} |")
         lines.append("")
 
     # Inbox breakdown
     if inbox_by_kind:
-        lines.extend([
-            "## Inbox wg typu",
-            "",
-            "| Typ | Plików |",
-            "|-----|--------|",
-        ])
+        lines.extend(
+            [
+                "## Inbox wg typu",
+                "",
+                "| Typ | Plików |",
+                "|-----|--------|",
+            ]
+        )
         for kind in sorted(inbox_by_kind, key=inbox_by_kind.get, reverse=True):
             lines.append(f"| {kind} | {inbox_by_kind[kind]} |")
         lines.append("")
 
     # Domain breakdown
     if domain_stats:
-        lines.extend([
-            "## Domeny (auto-detected)",
-            "",
-            "| Domena | Propozycji |",
-            "|--------|-----------|",
-        ])
+        lines.extend(
+            [
+                "## Domeny (auto-detected)",
+                "",
+                "| Domena | Propozycji |",
+                "|--------|-----------|",
+            ]
+        )
         for domain, cnt in domain_stats[:10]:
             lines.append(f"| {domain} | {cnt} |")
         lines.append("")
 
     # Recent activity — 24h
     if audit_24h:
-        lines.extend([
-            "## Ostatnie akcje (24h)",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Ostatnie akcje (24h)",
+                "",
+            ]
+        )
         for entry in audit_24h[:15]:
             lines.append(_format_audit_line(entry))
         lines.append("")
 
     # 7-day history (collapsible)
     if audit_7d:
-        lines.extend([
-            "<details>",
-            "<summary><strong>Wcześniejsze akcje (7 dni)</strong></summary>",
-            "",
-        ])
+        lines.extend(
+            [
+                "<details>",
+                "<summary><strong>Wcześniejsze akcje (7 dni)</strong></summary>",
+                "",
+            ]
+        )
         for entry in audit_7d[:30]:
             lines.append(_format_audit_line(entry))
         lines.extend(["", "</details>", ""])
 
     # Batch history
     if recent_batches:
-        lines.extend([
-            "## Operacje batch",
-            "",
-            "| ID (skrót) | Akcja | Propozycji | Data | Status |",
-            "|------------|-------|-----------|------|--------|",
-        ])
+        lines.extend(
+            [
+                "## Operacje batch",
+                "",
+                "| ID (skrót) | Akcja | Propozycji | Data | Status |",
+                "|------------|-------|-----------|------|--------|",
+            ]
+        )
         for b in recent_batches:
             short_id = (b["id"] or "")[:8]
             action = b["action"] or ""
@@ -189,33 +209,35 @@ def main() -> int:
         lines.append("")
 
     # Quick actions — all plugin functionalities
-    lines.extend([
-        "## Szybkie akcje",
-        "",
-        "### Pipeline",
-        "- **Ctrl+P** → `KMS: Refresh review queue` — skan inboxa + AI streszczenia + dashboard",
-        "- **Ctrl+P** → `KMS: Apply decisions` — zastosuj zatwierdzone propozycje (z batch tracking)",
-        "- **Ctrl+P** → `KMS: Retriage all proposals` — re-klasyfikacja domen/tematów przez LLM",
-        "",
-        "### Bulk",
-        "- **Ctrl+P** → `KMS: Approve all pending` — zatwierdź wszystkie oczekujące",
-        "- **Ctrl+P** → `KMS: Reject all pending` — odrzuć wszystkie oczekujące",
-        "",
-        "### Nawigacja",
-        "- **Ctrl+P** → `KMS: Open review queue` — otwórz kolejkę przeglądu",
-        "- **Ctrl+P** → `KMS: Open dashboard` — otwórz dashboard",
-        "- **Ctrl+P** → `KMS: Open control panel` — panel sterowania (sidebar)",
-        "- **Ctrl+P** → `KMS: Search proposals` — wyszukaj propozycje po tekście/domenie",
-        "",
-        "### Zaawansowane",
-        "- **Ctrl+P** → `KMS: Revert applied proposal` — cofnij zastosowaną propozycję (ID)",
-        "- **Ctrl+P** → `KMS: Revert batch` — cofnij całą operację batch (UUID)",
-        "- **Ctrl+P** → `KMS: Run setup wizard` — ponownie uruchom kreator konfiguracji",
-        "",
-        "---",
-        f"*Wygenerowano automatycznie przez `generate_dashboard.py` — {now}*",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Szybkie akcje",
+            "",
+            "### Pipeline",
+            "- **Ctrl+P** → `KMS: Refresh review queue` — skan inboxa + AI streszczenia + dashboard",
+            "- **Ctrl+P** → `KMS: Apply decisions` — zastosuj zatwierdzone propozycje (z batch tracking)",
+            "- **Ctrl+P** → `KMS: Retriage all proposals` — re-klasyfikacja domen/tematów przez LLM",
+            "",
+            "### Bulk",
+            "- **Ctrl+P** → `KMS: Approve all pending` — zatwierdź wszystkie oczekujące",
+            "- **Ctrl+P** → `KMS: Reject all pending` — odrzuć wszystkie oczekujące",
+            "",
+            "### Nawigacja",
+            "- **Ctrl+P** → `KMS: Open review queue` — otwórz kolejkę przeglądu",
+            "- **Ctrl+P** → `KMS: Open dashboard` — otwórz dashboard",
+            "- **Ctrl+P** → `KMS: Open control panel` — panel sterowania (sidebar)",
+            "- **Ctrl+P** → `KMS: Search proposals` — wyszukaj propozycje po tekście/domenie",
+            "",
+            "### Zaawansowane",
+            "- **Ctrl+P** → `KMS: Revert applied proposal` — cofnij zastosowaną propozycję (ID)",
+            "- **Ctrl+P** → `KMS: Revert batch` — cofnij całą operację batch (UUID)",
+            "- **Ctrl+P** → `KMS: Run setup wizard` — ponownie uruchom kreator konfiguracji",
+            "",
+            "---",
+            f"*Wygenerowano automatycznie przez `generate_dashboard.py` — {now}*",
+            "",
+        ]
+    )
 
     md = "\n".join(lines)
     dashboard_path = vp["admin"] / "dashboard.md"

@@ -34,10 +34,14 @@ def add_dry_run(p: argparse.ArgumentParser) -> None:
 
 
 def setup_logging(cfg: dict[str, Any], verbose: bool) -> None:
-    level = logging.DEBUG if verbose else getattr(
-        logging,
-        str(cfg.get("logging", {}).get("level", "INFO")).upper(),
-        logging.INFO,
+    level = (
+        logging.DEBUG
+        if verbose
+        else getattr(
+            logging,
+            str(cfg.get("logging", {}).get("level", "INFO")).upper(),
+            logging.INFO,
+        )
     )
     log_file = cfg.get("logging", {}).get("file")
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
@@ -47,7 +51,10 @@ def setup_logging(cfg: dict[str, Any], verbose: bool) -> None:
         max_bytes = int(cfg.get("logging", {}).get("max_bytes", 5_242_880))  # 5 MB
         backup_count = int(cfg.get("logging", {}).get("backup_count", 3))
         rotating = logging.handlers.RotatingFileHandler(
-            path, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8",
+            path,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding="utf-8",
         )
         handlers.append(rotating)
     logging.basicConfig(

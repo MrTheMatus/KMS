@@ -35,7 +35,9 @@ _DEFAULT_FOLDERS = [
 _EXTENSIONS = {".md", ".txt", ".pdf"}
 
 
-def _collect_files(vault_root: Path, folders: list[str], extensions: set[str]) -> list[Path]:
+def _collect_files(
+    vault_root: Path, folders: list[str], extensions: set[str]
+) -> list[Path]:
     """Collect files from vault subdirectories."""
     files: list[Path] = []
     for folder in folders:

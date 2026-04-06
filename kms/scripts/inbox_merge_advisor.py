@@ -18,7 +18,10 @@ from typing import Any
 from kms.app.anythingllm_client import AnythingLLMClient, anythingllm_chat_text_response
 from kms.app.config import abs_path, vault_paths
 from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts
-from kms.app.merge_advisor import analyze_incoming_vs_corpus, render_prompt_from_template
+from kms.app.merge_advisor import (
+    analyze_incoming_vs_corpus,
+    render_prompt_from_template,
+)
 from kms.app.paths import project_root
 from kms.scripts._cli import add_dry_run, build_parser, load_setup_logging
 
@@ -60,16 +63,22 @@ def main() -> int:
     permanent = vp["permanent_notes"]
 
     ma_cfg = cfg.get("merge_advisor") or {}
-    tpl_rel = str(ma_cfg.get("prompt_template", "kms/templates/merge_advisor_prompt.md.j2"))
+    tpl_rel = str(
+        ma_cfg.get("prompt_template", "kms/templates/merge_advisor_prompt.md.j2")
+    )
     tpl_path = (project_root() / tpl_rel).resolve()
     if not tpl_path.is_file():
-        tpl_path = (project_root() / "kms" / "templates" / "merge_advisor_prompt.md.j2").resolve()
+        tpl_path = (
+            project_root() / "kms" / "templates" / "merge_advisor_prompt.md.j2"
+        ).resolve()
 
     conn = connect(db_path)
     ensure_schema(conn, schema_path)
 
     where = "AND p.id = ?" if args.proposal_id is not None else ""
-    params: tuple[Any, ...] = (args.proposal_id,) if args.proposal_id is not None else ()
+    params: tuple[Any, ...] = (
+        (args.proposal_id,) if args.proposal_id is not None else ()
+    )
 
     rows = fetch_all_dicts(
         conn,
@@ -117,7 +126,9 @@ def main() -> int:
 
         llm_reply = ""
         if args.invoke_anythingllm and not args.dry_run:
-            llm_reply = _call_anythingllm_chat(cfg, ma_cfg, prompt_md, int(row["proposal_id"]))
+            llm_reply = _call_anythingllm_chat(
+                cfg, ma_cfg, prompt_md, int(row["proposal_id"])
+            )
 
         obj = {
             "proposal_id": row["proposal_id"],
@@ -145,11 +156,7 @@ def main() -> int:
                 + "\n".join(f"- {a}" for a in result.suggested_actions)
                 + "\n\n### Prompt (AnythingLLM)\n\n"
                 + prompt_md
-                + (
-                    "\n\n### Odpowiedź AnythingLLM\n\n" + llm_reply
-                    if llm_reply
-                    else ""
-                )
+                + ("\n\n### Odpowiedź AnythingLLM\n\n" + llm_reply if llm_reply else "")
                 + "\n\n---\n"
             )
 
@@ -172,7 +179,10 @@ def main() -> int:
 
     report = "\n".join(chunks) if chunks else ""
     if args.out and not args.dry_run:
-        args.out.write_text(report or json.dumps(out_objects, ensure_ascii=False, indent=2), encoding="utf-8")
+        args.out.write_text(
+            report or json.dumps(out_objects, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
         _LOG.info("Wrote %s", args.out)
     elif not args.json and report:
         print(report)

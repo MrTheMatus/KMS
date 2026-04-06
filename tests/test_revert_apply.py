@@ -48,7 +48,12 @@ def _write_config(tmp: Path, vault: Path, db: Path) -> Path:
 
 def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        cmd, cwd=cwd, env={"PYTHONPATH": str(cwd)}, capture_output=True, text=True, check=False,
+        cmd,
+        cwd=cwd,
+        env={"PYTHONPATH": str(cwd)},
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
@@ -60,7 +65,9 @@ def _find_proposal_id(db_path: Path, item_path_contains: str) -> int:
         (f"%{item_path_contains}%",),
     ).fetchone()
     conn.close()
-    assert row is not None, f"No proposal found for item matching '{item_path_contains}'"
+    assert row is not None, (
+        f"No proposal found for item matching '{item_path_contains}'"
+    )
     return int(row[0])
 
 
@@ -73,23 +80,41 @@ def applied_repo(tmp_path: Path) -> tuple[Path, str, int]:
     copy_kms_for_tests(tmp_path / "kms")
     vault = tmp_path / "vault"
     vault.mkdir(exist_ok=True)
-    for d in ["00_Inbox", "10_Sources/web", "10_Sources/pdf", "00_Admin/reports",
-              "20_Source-Notes", "30_Permanent-Notes"]:
+    for d in [
+        "00_Inbox",
+        "10_Sources/web",
+        "10_Sources/pdf",
+        "00_Admin/reports",
+        "20_Source-Notes",
+        "30_Permanent-Notes",
+    ]:
         (vault / d).mkdir(parents=True, exist_ok=True)
     db = tmp_path / "kms" / "data" / "state.db"
     db.parent.mkdir(parents=True, exist_ok=True)
     _write_config(tmp_path, vault, db)
     (vault / "00_Inbox" / "revert-test.txt").write_text("revert me", encoding="utf-8")
-    (tmp_path / "pyproject.toml").write_text((ROOT / "pyproject.toml").read_text(), encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        (ROOT / "pyproject.toml").read_text(), encoding="utf-8"
+    )
 
     py = sys.executable
     cfg = str(tmp_path / "kms" / "config" / "config.yaml")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], tmp_path).returncode == 0
-    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], tmp_path).returncode == 0
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], tmp_path).returncode
+        == 0
+    )
+    assert (
+        _run(
+            [py, "-m", "kms.scripts.make_review_queue", "--config", cfg], tmp_path
+        ).returncode
+        == 0
+    )
 
     rq = vault / "00_Admin" / "review-queue.md"
     text = rq.read_text(encoding="utf-8")
-    rq.write_text(text.replace("decision: pending", "decision: approve"), encoding="utf-8")
+    rq.write_text(
+        text.replace("decision: pending", "decision: approve"), encoding="utf-8"
+    )
 
     r = _run([py, "-m", "kms.scripts.apply_decisions", "--config", cfg], tmp_path)
     assert r.returncode == 0, r.stderr + r.stdout
@@ -105,7 +130,18 @@ def test_revert_restores_file_to_inbox(applied_repo: tuple[Path, str, int]) -> N
     assert (cwd / "vault" / "10_Sources" / "web" / "revert-test.txt").is_file()
     assert not (cwd / "vault" / "00_Inbox" / "revert-test.txt").is_file()
 
-    r = _run([py, "-m", "kms.scripts.revert_apply", "--proposal-id", str(pid), "--config", cfg], cwd)
+    r = _run(
+        [
+            py,
+            "-m",
+            "kms.scripts.revert_apply",
+            "--proposal-id",
+            str(pid),
+            "--config",
+            cfg,
+        ],
+        cwd,
+    )
     assert r.returncode == 0, r.stderr + r.stdout
 
     assert (cwd / "vault" / "00_Inbox" / "revert-test.txt").is_file()
@@ -116,16 +152,33 @@ def test_revert_cleans_db_rows(applied_repo: tuple[Path, str, int]) -> None:
     cwd, cfg, pid = applied_repo
     py = sys.executable
 
-    _run([py, "-m", "kms.scripts.revert_apply", "--proposal-id", str(pid), "--config", cfg], cwd)
+    _run(
+        [
+            py,
+            "-m",
+            "kms.scripts.revert_apply",
+            "--proposal-id",
+            str(pid),
+            "--config",
+            cfg,
+        ],
+        cwd,
+    )
 
     conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
-    art = conn.execute("SELECT id FROM artifacts WHERE proposal_id = ?", (pid,)).fetchone()
-    exe = conn.execute("SELECT id FROM executions WHERE proposal_id = ?", (pid,)).fetchone()
+    art = conn.execute(
+        "SELECT id FROM artifacts WHERE proposal_id = ?", (pid,)
+    ).fetchone()
+    exe = conn.execute(
+        "SELECT id FROM executions WHERE proposal_id = ?", (pid,)
+    ).fetchone()
     item = conn.execute(
-        "SELECT status FROM items WHERE id = (SELECT item_id FROM proposals WHERE id = ?)", (pid,)
+        "SELECT status FROM items WHERE id = (SELECT item_id FROM proposals WHERE id = ?)",
+        (pid,),
     ).fetchone()
     audit_row = conn.execute(
-        "SELECT action FROM audit_log WHERE action = 'revert_apply' AND entity_id = ?", (str(pid),)
+        "SELECT action FROM audit_log WHERE action = 'revert_apply' AND entity_id = ?",
+        (str(pid),),
     ).fetchone()
     conn.close()
 
@@ -139,16 +192,41 @@ def test_revert_dry_run_does_not_move(applied_repo: tuple[Path, str, int]) -> No
     cwd, cfg, pid = applied_repo
     py = sys.executable
 
-    r = _run([py, "-m", "kms.scripts.revert_apply", "--proposal-id", str(pid), "--dry-run", "--config", cfg], cwd)
+    r = _run(
+        [
+            py,
+            "-m",
+            "kms.scripts.revert_apply",
+            "--proposal-id",
+            str(pid),
+            "--dry-run",
+            "--config",
+            cfg,
+        ],
+        cwd,
+    )
     assert r.returncode == 0, r.stderr + r.stdout
 
     assert (cwd / "vault" / "10_Sources" / "web" / "revert-test.txt").is_file()
     assert not (cwd / "vault" / "00_Inbox" / "revert-test.txt").is_file()
 
 
-def test_revert_nonexistent_proposal_returns_error(applied_repo: tuple[Path, str, int]) -> None:
+def test_revert_nonexistent_proposal_returns_error(
+    applied_repo: tuple[Path, str, int],
+) -> None:
     cwd, cfg, _pid = applied_repo
     py = sys.executable
 
-    r = _run([py, "-m", "kms.scripts.revert_apply", "--proposal-id", "9999", "--config", cfg], cwd)
+    r = _run(
+        [
+            py,
+            "-m",
+            "kms.scripts.revert_apply",
+            "--proposal-id",
+            "9999",
+            "--config",
+            cfg,
+        ],
+        cwd,
+    )
     assert r.returncode == 2

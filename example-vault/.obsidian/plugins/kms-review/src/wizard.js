@@ -17,7 +17,7 @@ export class KmsOnboardingWizard extends Modal {
 
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("kms-wizard-modal");
+    this.modalEl.addClass("kms-wizard-modal");
     this._renderStep();
   }
 
@@ -361,7 +361,7 @@ export class KmsHelpModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-wizard-modal");
+    this.modalEl.addClass("kms-wizard-modal");
 
     contentEl.createEl("h2", { text: t("helpTitle") });
     contentEl.createEl("p", { text: t("helpIntro") });

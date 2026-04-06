@@ -34,7 +34,9 @@ def _slug_from_title(title: str) -> str:
     return slug[:60].strip("-") or "conversation"
 
 
-def _build_prompt(template_path: Path, conversation_text: str, title: str | None) -> str:
+def _build_prompt(
+    template_path: Path, conversation_text: str, title: str | None
+) -> str:
     env = Environment(
         loader=FileSystemLoader(str(template_path.parent)),
         autoescape=select_autoescape(enabled_extensions=()),
@@ -142,11 +144,17 @@ def _process_single(
         schema_path = project_root() / "kms" / "app" / "schema.sql"
         conn = connect(db_path)
         ensure_schema(conn, schema_path)
-        audit(conn, "convert_conversation", "source_note", note_id, {
-            "input_file": str(input_path),
-            "title": title,
-            "invoke_anythingllm": invoke_anythingllm,
-        })
+        audit(
+            conn,
+            "convert_conversation",
+            "source_note",
+            note_id,
+            {
+                "input_file": str(input_path),
+                "title": title,
+                "invoke_anythingllm": invoke_anythingllm,
+            },
+        )
         conn.commit()
         conn.close()
     except Exception:  # noqa: BLE001
@@ -157,17 +165,23 @@ def _process_single(
 
 
 def main() -> int:
-    p = build_parser("Convert a raw conversation into a knowledge source-note in inbox.")
+    p = build_parser(
+        "Convert a raw conversation into a knowledge source-note in inbox."
+    )
     add_dry_run(p)
     src = p.add_mutually_exclusive_group(required=True)
-    src.add_argument("--input", type=Path, default=None, help="Single conversation text file")
+    src.add_argument(
+        "--input", type=Path, default=None, help="Single conversation text file"
+    )
     src.add_argument(
         "--batch-dir",
         type=Path,
         default=None,
         help="Directory of *.txt / *.md conversation files (one note per file)",
     )
-    p.add_argument("--title", default=None, help="Note title for --input only (default: timestamp)")
+    p.add_argument(
+        "--title", default=None, help="Note title for --input only (default: timestamp)"
+    )
     p.add_argument(
         "--invoke-anythingllm",
         action="store_true",
@@ -178,7 +192,9 @@ def main() -> int:
     vp = vault_paths(cfg)
     inbox = vp["inbox"]
 
-    tpl_path = (project_root() / "kms" / "templates" / "conversation_extract.md.j2").resolve()
+    tpl_path = (
+        project_root() / "kms" / "templates" / "conversation_extract.md.j2"
+    ).resolve()
     if not tpl_path.is_file():
         _LOG.error("Template not found: %s", tpl_path)
         return 1
@@ -189,7 +205,8 @@ def main() -> int:
             _LOG.error("batch-dir not found: %s", bdir)
             return 1
         files = sorted(
-            p for p in bdir.iterdir()
+            p
+            for p in bdir.iterdir()
             if p.is_file() and p.suffix.lower() in {".txt", ".md"}
         )
         if not files:
@@ -236,7 +253,9 @@ def _call_anythingllm(cfg: dict, prompt: str) -> str:
     key_env = str(api_cfg.get("api_key_env", "ANYTHINGLLM_API_KEY"))
     api_key = os.getenv(key_env, "").strip()
     if not api_key:
-        _LOG.warning("AnythingLLM API key not set (%s), falling back to raw prompt", key_env)
+        _LOG.warning(
+            "AnythingLLM API key not set (%s), falling back to raw prompt", key_env
+        )
         return prompt
 
     client = AnythingLLMClient(base_url=base, api_key=api_key, workspace_slug=slug)

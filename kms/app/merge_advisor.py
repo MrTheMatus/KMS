@@ -13,7 +13,11 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from kms.app.knowledge_index import PermanentNote, find_best_matches, load_permanent_notes
+from kms.app.knowledge_index import (
+    PermanentNote,
+    find_best_matches,
+    load_permanent_notes,
+)
 from kms.app.llm_triage import summarize_text
 
 
@@ -91,7 +95,9 @@ def analyze_incoming_vs_corpus(
                 "Potraktuj jako nową niezależną notatkę lub source note.",
                 "Po zatwierdzeniu rozważ dodanie linków z warstwy permanent.",
             ],
-            llm_prompt_markdown=_build_prompt_stub(incoming_text, notes, matches, "independent"),
+            llm_prompt_markdown=_build_prompt_stub(
+                incoming_text, notes, matches, "independent"
+            ),
         )
 
     best = matches[0]
@@ -153,7 +159,9 @@ def analyze_incoming_vs_corpus(
     else:
         rec = "independent"
         conf = 0.52
-        reason = "Słabe pokrycie — traktuj jako odrębny temat lub szkic pod przyszły merge."
+        reason = (
+            "Słabe pokrycie — traktuj jako odrębny temat lub szkic pod przyszły merge."
+        )
         actions = ["Utwórz nową permanent note lub zostaw w source layer do review."]
 
     conflict_signals: list[str] = []

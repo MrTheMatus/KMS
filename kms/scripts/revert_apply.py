@@ -9,7 +9,14 @@ from pathlib import Path
 
 from kms.app.anythingllm_client import AnythingLLMClient
 from kms.app.config import abs_path, vault_paths
-from kms.app.db import audit, connect, create_batch, ensure_schema, fetch_all_dicts, utc_now_iso
+from kms.app.db import (
+    audit,
+    connect,
+    create_batch,
+    ensure_schema,
+    fetch_all_dicts,
+    utc_now_iso,
+)
 from kms.app.execution_snapshot import parse_snapshot_json
 from kms.app.lifecycle import recompute_lifecycle
 from kms.app.paths import project_root
@@ -91,14 +98,17 @@ def _revert_batch(conn, cfg, vp, vault, batch_id: str, *, dry_run: bool) -> int:
 
     # Create a revert batch for audit trail
     revert_batch_id = create_batch(
-        conn, "revert_batch",
+        conn,
+        "revert_batch",
         f"Revert batch {batch_id[:8]} ({len(pids)} proposals)",
         len(pids),
     )
 
     failed = 0
     for pid in pids:
-        code = _revert_one(conn, cfg, vp, vault, pid, dry_run=False, revert_batch_id=revert_batch_id)
+        code = _revert_one(
+            conn, cfg, vp, vault, pid, dry_run=False, revert_batch_id=revert_batch_id
+        )
         if code != 0:
             _LOG.error("Failed to revert proposal %s (continuing with remaining)", pid)
             failed += 1
@@ -118,7 +128,9 @@ def _revert_batch(conn, cfg, vp, vault, batch_id: str, *, dry_run: bool) -> int:
     return 3 if failed else 0
 
 
-def _revert_one(conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_id: str | None = None) -> int:
+def _revert_one(
+    conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_id: str | None = None
+) -> int:
     """Revert a single proposal. Returns 0 on success."""
     rows = fetch_all_dicts(
         conn,
@@ -156,7 +168,10 @@ def _revert_one(conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_i
     if dry_run:
         _LOG.info(
             "dry-run: would revert proposal %s: move %s -> %s, delete %s, drop artifact",
-            pid, dest_rel, src_rel, created_paths,
+            pid,
+            dest_rel,
+            src_rel,
+            created_paths,
         )
         return 0
 
@@ -174,22 +189,48 @@ def _revert_one(conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_i
             )
             try:
                 client.remove_embeddings([doc_loc])
-                audit(conn, "revert_apply", "proposal", str(pid),
-                      {"anythingllm_removed": True, "doc_location": doc_loc}, None,
-                      batch_id=revert_batch_id)
+                audit(
+                    conn,
+                    "revert_apply",
+                    "proposal",
+                    str(pid),
+                    {"anythingllm_removed": True, "doc_location": doc_loc},
+                    None,
+                    batch_id=revert_batch_id,
+                )
             except Exception as exc:  # noqa: BLE001
-                _LOG.warning("AnythingLLM remove_embeddings failed (continuing revert): %s", exc)
-                audit(conn, "revert_apply", "proposal", str(pid),
-                      {"anythingllm_remove_failed": True, "doc_location": doc_loc}, str(exc),
-                      batch_id=revert_batch_id)
+                _LOG.warning(
+                    "AnythingLLM remove_embeddings failed (continuing revert): %s", exc
+                )
+                audit(
+                    conn,
+                    "revert_apply",
+                    "proposal",
+                    str(pid),
+                    {"anythingllm_remove_failed": True, "doc_location": doc_loc},
+                    str(exc),
+                    batch_id=revert_batch_id,
+                )
         else:
-            audit(conn, "revert_apply", "proposal", str(pid),
-                  {"anythingllm_manual": True, "reason": "missing API key env"}, None,
-                  batch_id=revert_batch_id)
+            audit(
+                conn,
+                "revert_apply",
+                "proposal",
+                str(pid),
+                {"anythingllm_manual": True, "reason": "missing API key env"},
+                None,
+                batch_id=revert_batch_id,
+            )
     elif index_ok and not doc_loc:
-        audit(conn, "revert_apply", "proposal", str(pid),
-              {"anythingllm_manual": True, "reason": "no doc_location on artifact"}, None,
-              batch_id=revert_batch_id)
+        audit(
+            conn,
+            "revert_apply",
+            "proposal",
+            str(pid),
+            {"anythingllm_manual": True, "reason": "no doc_location on artifact"},
+            None,
+            batch_id=revert_batch_id,
+        )
 
     for rel in created_paths:
         pth = vault / rel
@@ -214,9 +255,16 @@ def _revert_one(conn, cfg, vp, vault, pid: int, *, dry_run: bool, revert_batch_i
         (src_rel, utc_now_iso(), pid),
     )
     audit(
-        conn, "revert_apply", "proposal", str(pid),
-        {"reverted": {"from": dest_rel, "to": src_rel}, "created_removed": created_paths},
-        None, batch_id=revert_batch_id,
+        conn,
+        "revert_apply",
+        "proposal",
+        str(pid),
+        {
+            "reverted": {"from": dest_rel, "to": src_rel},
+            "created_removed": created_paths,
+        },
+        None,
+        batch_id=revert_batch_id,
     )
     conn.commit()
     _LOG.info("Reverted proposal %s", pid)

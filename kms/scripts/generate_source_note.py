@@ -40,7 +40,9 @@ def main() -> int:
     p.add_argument("--source-url", default="", help="URL if web capture")
     p.add_argument("--file-link", default="", help="Relative vault path to binary/PDF")
     p.add_argument("--language", default="pl")
-    p.add_argument("--id", dest="note_id", default=None, help="Override id (default: auto)")
+    p.add_argument(
+        "--id", dest="note_id", default=None, help="Override id (default: auto)"
+    )
     p.add_argument(
         "-o",
         "--output",
@@ -103,11 +105,19 @@ def main() -> int:
         schema_path = project_root() / "kms" / "app" / "schema.sql"
         conn = connect(db_path)
         ensure_schema(conn, schema_path)
-        audit(conn, "generate_source_note", "source_note", note_id, {
-            "path": str(out.relative_to(vp["root"])) if out.is_relative_to(vp["root"]) else str(out),
-            "title": args.title,
-            "source_type": args.source_type,
-        })
+        audit(
+            conn,
+            "generate_source_note",
+            "source_note",
+            note_id,
+            {
+                "path": str(out.relative_to(vp["root"]))
+                if out.is_relative_to(vp["root"])
+                else str(out),
+                "title": args.title,
+                "source_type": args.source_type,
+            },
+        )
         conn.close()
     except Exception:  # noqa: BLE001
         pass

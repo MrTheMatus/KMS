@@ -13,7 +13,9 @@ from kms.scripts._cli import build_parser, load_setup_logging
 
 def main() -> int:
     p = build_parser("List batch operations (JSON output).")
-    p.add_argument("--active-only", action="store_true", help="Show only non-reverted batches")
+    p.add_argument(
+        "--active-only", action="store_true", help="Show only non-reverted batches"
+    )
     p.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
     args = p.parse_args()
     cfg = load_setup_logging(args)

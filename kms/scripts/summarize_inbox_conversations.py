@@ -25,9 +25,32 @@ from kms.scripts._cli import add_dry_run, build_parser, load_setup_logging
 
 
 STOPWORDS = {
-    "oraz", "które", "który", "która", "jako", "przez", "tego", "też", "jest",
-    "that", "this", "from", "with", "into", "have", "will", "were", "https",
-    "http", "www", "page", "chatgpt", "conversation", "guide", "pm", "am",
+    "oraz",
+    "które",
+    "który",
+    "która",
+    "jako",
+    "przez",
+    "tego",
+    "też",
+    "jest",
+    "that",
+    "this",
+    "from",
+    "with",
+    "into",
+    "have",
+    "will",
+    "were",
+    "https",
+    "http",
+    "www",
+    "page",
+    "chatgpt",
+    "conversation",
+    "guide",
+    "pm",
+    "am",
 }
 
 META_NOISE = (
@@ -198,7 +221,9 @@ def _llm_synthesis(cfg: dict, *, title: str, body: str, topics: str) -> str | No
         "```"
     )
     client = AnythingLLMClient(base_url=base, api_key=api_key, workspace_slug=slug)
-    data = client.workspace_chat(prompt, mode="chat", session_id=f"kms-synth-{title[:32]}")
+    data = client.workspace_chat(
+        prompt, mode="chat", session_id=f"kms-synth-{title[:32]}"
+    )
     text = anythingllm_chat_text_response(data).strip()
     if not text or text.startswith("[AnythingLLM error:"):
         return None
@@ -208,8 +233,14 @@ def _llm_synthesis(cfg: dict, *, title: str, body: str, topics: str) -> str | No
 def main() -> int:
     p = build_parser("Clean and synthesize conversation notes in inbox.")
     add_dry_run(p)
-    p.add_argument("--invoke-anythingllm", action="store_true", help="Use AnythingLLM synthesis first")
-    p.add_argument("--max-files", type=int, default=0, help="Limit number of files (0 = all)")
+    p.add_argument(
+        "--invoke-anythingllm",
+        action="store_true",
+        help="Use AnythingLLM synthesis first",
+    )
+    p.add_argument(
+        "--max-files", type=int, default=0, help="Limit number of files (0 = all)"
+    )
     args = p.parse_args()
     cfg = load_setup_logging(args)
     vp = vault_paths(cfg)
@@ -281,10 +312,18 @@ def main() -> int:
         except Exception:  # noqa: BLE001
             pass
 
-    print(json.dumps({"changed": changed, "failed": failed, "llm_used": llm_used, "targets": len(targets)}))
+    print(
+        json.dumps(
+            {
+                "changed": changed,
+                "failed": failed,
+                "llm_used": llm_used,
+                "targets": len(targets),
+            }
+        )
+    )
     return 0 if failed == 0 else 2
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -10,7 +10,9 @@ from kms.app.llm_triage import check_contradiction, triage_against_permanent_not
 def test_llm_triage_contract_has_required_fields(tmp_path: Path) -> None:
     perm = tmp_path / "30_Permanent-Notes"
     perm.mkdir(parents=True, exist_ok=True)
-    (perm / "pv-costs.md").write_text("# PV costs\nGrid storage tariff details and costs.", encoding="utf-8")
+    (perm / "pv-costs.md").write_text(
+        "# PV costs\nGrid storage tariff details and costs.", encoding="utf-8"
+    )
 
     payload = triage_against_permanent_notes(
         "This source describes tariff and grid storage costs for PV systems.",
@@ -18,18 +20,24 @@ def test_llm_triage_contract_has_required_fields(tmp_path: Path) -> None:
     )
     assert isinstance(payload["summary"], str)
     assert isinstance(payload["confidence"], float)
-    assert payload["suggested_permanent_note_action"] in {"create-new", "update-existing", "review-contradiction"}
+    assert payload["suggested_permanent_note_action"] in {
+        "create-new",
+        "update-existing",
+        "review-contradiction",
+    }
     assert "top_matches" in payload
 
 
 def test_check_contradiction_returns_dict() -> None:
     """check_contradiction should return a valid dict with required keys."""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = json.dumps({
-        "contradiction": True,
-        "severity": "high",
-        "explanation": "Sprzeczne twierdzenia o pass-by-value vs pass-by-reference.",
-    })
+    mock_llm.generate.return_value = json.dumps(
+        {
+            "contradiction": True,
+            "severity": "high",
+            "explanation": "Sprzeczne twierdzenia o pass-by-value vs pass-by-reference.",
+        }
+    )
 
     result = check_contradiction(
         mock_llm,
@@ -40,17 +48,22 @@ def test_check_contradiction_returns_dict() -> None:
     )
     assert result["contradiction"] is True
     assert result["severity"] == "high"
-    assert "pass-by" in result["explanation"].lower() or "sprzeczn" in result["explanation"].lower()
+    assert (
+        "pass-by" in result["explanation"].lower()
+        or "sprzeczn" in result["explanation"].lower()
+    )
 
 
 def test_check_contradiction_no_conflict() -> None:
     """Non-contradicting notes should return contradiction=False."""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = json.dumps({
-        "contradiction": False,
-        "severity": "none",
-        "explanation": "Notatki się uzupełniają.",
-    })
+    mock_llm.generate.return_value = json.dumps(
+        {
+            "contradiction": False,
+            "severity": "none",
+            "explanation": "Notatki się uzupełniają.",
+        }
+    )
 
     result = check_contradiction(
         mock_llm,
@@ -89,11 +102,13 @@ def test_triage_includes_contradiction_when_detected(tmp_path: Path) -> None:
 
     def mock_generate(prompt: str, system: str | None = None) -> str:
         if "Porównaj" in prompt or "SPRZECZNA" in prompt:
-            return json.dumps({
-                "contradiction": True,
-                "severity": "high",
-                "explanation": "Nowa notatka twierdzi pass-by-reference, istniejąca pass-by-value.",
-            })
+            return json.dumps(
+                {
+                    "contradiction": True,
+                    "severity": "high",
+                    "explanation": "Nowa notatka twierdzi pass-by-reference, istniejąca pass-by-value.",
+                }
+            )
         # Classification prompt
         return json.dumps({"domain": "java", "topics": ["architecture"]})
 
@@ -110,4 +125,3 @@ def test_triage_includes_contradiction_when_detected(tmp_path: Path) -> None:
     if payload.get("contradiction"):
         assert payload["contradiction"]["contradiction"] is True
         assert payload["suggested_permanent_note_action"] == "review-contradiction"
-

@@ -12,7 +12,9 @@ from kms.scripts._cli import build_parser, load_setup_logging
 
 
 def main() -> int:
-    p = build_parser("Show KMS control-plane status for proposals (lifecycle, paths, index).")
+    p = build_parser(
+        "Show KMS control-plane status for proposals (lifecycle, paths, index)."
+    )
     p.add_argument(
         "--proposal-id",
         type=int,

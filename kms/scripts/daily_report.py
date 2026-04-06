@@ -98,10 +98,18 @@ def main() -> int:
         schema_path = project_root() / "kms" / "app" / "schema.sql"
         conn = connect(db_path)
         ensure_schema(conn, schema_path)
-        audit(conn, "daily_report", "report", today, {
-            "path": str(out_path.relative_to(vault_root)) if out_path.is_relative_to(vault_root) else str(out_path),
-            "since": args.since,
-        })
+        audit(
+            conn,
+            "daily_report",
+            "report",
+            today,
+            {
+                "path": str(out_path.relative_to(vault_root))
+                if out_path.is_relative_to(vault_root)
+                else str(out_path),
+                "since": args.since,
+            },
+        )
         conn.close()
     except Exception:  # noqa: BLE001
         pass

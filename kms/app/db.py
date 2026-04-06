@@ -134,9 +134,13 @@ def _ensure_batches(conn: sqlite3.Connection) -> None:
             )"""
         )
     if not _has_column(conn, "audit_log", "batch_id"):
-        conn.execute("ALTER TABLE audit_log ADD COLUMN batch_id TEXT REFERENCES batches(id)")
+        conn.execute(
+            "ALTER TABLE audit_log ADD COLUMN batch_id TEXT REFERENCES batches(id)"
+        )
     if not _has_column(conn, "executions", "batch_id"):
-        conn.execute("ALTER TABLE executions ADD COLUMN batch_id TEXT REFERENCES batches(id)")
+        conn.execute(
+            "ALTER TABLE executions ADD COLUMN batch_id TEXT REFERENCES batches(id)"
+        )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_batch ON audit_log(batch_id)")
     conn.commit()
 
@@ -158,7 +162,9 @@ def create_batch(
 
 
 def update_batch_count(conn: sqlite3.Connection, batch_id: str, count: int) -> None:
-    conn.execute("UPDATE batches SET proposal_count = ? WHERE id = ?", (count, batch_id))
+    conn.execute(
+        "UPDATE batches SET proposal_count = ? WHERE id = ?", (count, batch_id)
+    )
     conn.commit()
 
 
@@ -187,6 +193,8 @@ def audit(
     conn.commit()
 
 
-def fetch_all_dicts(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+def fetch_all_dicts(
+    conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()
+) -> list[dict[str, Any]]:
     cur = conn.execute(sql, params)
     return [dict(row) for row in cur.fetchall()]

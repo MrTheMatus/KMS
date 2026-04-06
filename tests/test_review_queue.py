@@ -51,7 +51,9 @@ def test_parse_invalid_decision_still_roundtrips_string() -> None:
 
 def test_parse_raises_on_unclosed_block() -> None:
     with pytest.raises(ValueError, match="Unclosed"):
-        parse_review_queue_markdown("<!-- kms:begin -->\n```yaml\nproposal_id: 1\nitem_id: 1\n```\n")
+        parse_review_queue_markdown(
+            "<!-- kms:begin -->\n```yaml\nproposal_id: 1\nitem_id: 1\n```\n"
+        )
 
 
 def test_parse_raises_on_invalid_yaml_mapping() -> None:

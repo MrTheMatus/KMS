@@ -37,7 +37,9 @@ def db_path(tmp_path: Path) -> Path:
             "INSERT INTO items (id, path, kind, hash, status, created_at, updated_at) VALUES (?, ?, 'file', 'abc', 'new', ?, ?)",
             (i, path, now, now),
         )
-        meta = json.dumps({"domain": "testing", "topics": ["unit-test"], "summary": f"Test file {i}"})
+        meta = json.dumps(
+            {"domain": "testing", "topics": ["unit-test"], "summary": f"Test file {i}"}
+        )
         conn.execute(
             "INSERT INTO proposals (id, item_id, suggested_action, suggested_target, suggested_metadata_json, created_at) VALUES (?, ?, 'move', '10_Sources/', ?, ?)",
             (i, i, meta, now),
@@ -62,7 +64,9 @@ def gateway(db_path: Path):
     server.shutdown()
 
 
-def _request(url: str, method: str = "GET", data: dict | list | None = None, token: str = TOKEN) -> tuple[int, dict]:
+def _request(
+    url: str, method: str = "GET", data: dict | list | None = None, token: str = TOKEN
+) -> tuple[int, dict]:
     body = json.dumps(data).encode() if data is not None else None
     req = urllib.request.Request(url, data=body, method=method)
     req.add_header("Authorization", f"Bearer {token}")
@@ -142,7 +146,9 @@ class TestGatewayDecisions:
 
         # Verify in DB
         conn = connect(db_path)
-        rows = conn.execute("SELECT decision FROM decisions WHERE proposal_id = 1").fetchall()
+        rows = conn.execute(
+            "SELECT decision FROM decisions WHERE proposal_id = 1"
+        ).fetchall()
         assert rows[0][0] == "approve"
         conn.close()
 
@@ -150,13 +156,21 @@ class TestGatewayDecisions:
         status, body = _request(
             f"{gateway}/api/decisions",
             method="POST",
-            data=[{"proposal_id": 2, "decision": "reject", "review_note": "Duplicate content"}],
+            data=[
+                {
+                    "proposal_id": 2,
+                    "decision": "reject",
+                    "review_note": "Duplicate content",
+                }
+            ],
         )
         assert status == 200
         assert body["updated"] == 1
 
         conn = connect(db_path)
-        rows = conn.execute("SELECT decision, review_note, reviewer FROM decisions WHERE proposal_id = 2").fetchall()
+        rows = conn.execute(
+            "SELECT decision, review_note, reviewer FROM decisions WHERE proposal_id = 2"
+        ).fetchall()
         assert rows[0][0] == "reject"
         assert rows[0][1] == "Duplicate content"
         assert rows[0][2] == "gateway"

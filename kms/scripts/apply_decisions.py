@@ -14,7 +14,15 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from kms.app.config import abs_path, vault_paths
-from kms.app.db import audit, connect, create_batch, ensure_schema, fetch_all_dicts, update_batch_count, utc_now_iso
+from kms.app.db import (
+    audit,
+    connect,
+    create_batch,
+    ensure_schema,
+    fetch_all_dicts,
+    update_batch_count,
+    utc_now_iso,
+)
 from kms.app.paths import ensure_dir, project_root
 from kms.app.execution_snapshot import build_apply_snapshot
 from kms.app.lifecycle import recompute_lifecycle
@@ -62,7 +70,9 @@ def _extract_frontmatter_yaml(md_path: Path) -> dict[str, Any] | None:
     return data
 
 
-def _find_source_note_by_file_link(source_notes_dir: Path, file_link_rel: str) -> Path | None:
+def _find_source_note_by_file_link(
+    source_notes_dir: Path, file_link_rel: str
+) -> Path | None:
     """Return existing source note path if frontmatter.file_link matches."""
     if not source_notes_dir.is_dir():
         return None
@@ -176,11 +186,21 @@ def _archive_rejected(conn, vp: dict[str, Path], *, dry_run: bool) -> int:
             "UPDATE items SET path = ?, status = 'archived', updated_at = ? WHERE id = ?",
             (dest_rel, now, row["item_id"]),
         )
-        audit(conn, "apply_decisions", "archive_rejected", str(row["proposal_id"]),
-              {"from": row["item_path"], "to": dest_rel})
+        audit(
+            conn,
+            "apply_decisions",
+            "archive_rejected",
+            str(row["proposal_id"]),
+            {"from": row["item_path"], "to": dest_rel},
+        )
         conn.commit()
         archived += 1
-        _LOG.info("Archived rejected proposal %s: %s -> %s", row["proposal_id"], row["item_path"], dest_rel)
+        _LOG.info(
+            "Archived rejected proposal %s: %s -> %s",
+            row["proposal_id"],
+            row["item_path"],
+            dest_rel,
+        )
     return archived
 
 
@@ -218,7 +238,9 @@ def main() -> int:
     valid_decisions = {"pending", "approve", "reject", "postpone"}
     for b in blocks:
         if b.decision not in valid_decisions:
-            _LOG.warning("Invalid decision %s for proposal %s", b.decision, b.proposal_id)
+            _LOG.warning(
+                "Invalid decision %s for proposal %s", b.decision, b.proposal_id
+            )
             audit(
                 conn,
                 "apply_decisions",
@@ -229,7 +251,11 @@ def main() -> int:
             )
             continue
         if b.decision in {"approve", "reject"} and not b.reviewer.strip():
-            _LOG.warning("Missing reviewer for proposal %s decision=%s", b.proposal_id, b.decision)
+            _LOG.warning(
+                "Missing reviewer for proposal %s decision=%s",
+                b.proposal_id,
+                b.decision,
+            )
         conn.execute(
             """INSERT INTO decisions (proposal_id, decision, override_target, reviewer, review_note, decided_at)
                VALUES (?, ?, ?, ?, ?, ?)
@@ -290,7 +316,8 @@ def main() -> int:
     if approved:
         ids = [str(r["proposal_id"]) for r in approved]
         batch_id = create_batch(
-            conn, "apply_decisions",
+            conn,
+            "apply_decisions",
             f"Apply {len(approved)} proposals: #{', #'.join(ids)}",
             len(approved),
         )
@@ -329,7 +356,11 @@ def _apply_one(
     vault = vp["root"]
     src = vault / src_rel
     dest = vault / (target_rel or "")
-    dest_rel = dest.relative_to(vault).as_posix() if dest.is_relative_to(vault) else dest.as_posix()
+    dest_rel = (
+        dest.relative_to(vault).as_posix()
+        if dest.is_relative_to(vault)
+        else dest.as_posix()
+    )
 
     # Idempotency: if a previous run already moved the file but failed before inserting artifact,
     # `src` might be missing while `dest` already exists.
@@ -436,7 +467,10 @@ def _apply_one(
             "apply_decisions",
             "proposal",
             str(proposal_id),
-            {"moved": {"from": src_rel if src.is_file() else None, "to": dest_rel}, "source_note": source_note_rel},
+            {
+                "moved": {"from": src_rel if src.is_file() else None, "to": dest_rel},
+                "source_note": source_note_rel,
+            },
             None,
             batch_id=batch_id,
         )

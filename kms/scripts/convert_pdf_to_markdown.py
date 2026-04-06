@@ -84,11 +84,17 @@ def main() -> int:
         schema_path = project_root() / "kms" / "app" / "schema.sql"
         conn = connect(db_path)
         ensure_schema(conn, schema_path)
-        audit(conn, "convert_pdf_to_markdown", "run", None, {
-            "converted": converted,
-            "failed": failed,
-            "dry_run": args.dry_run,
-        })
+        audit(
+            conn,
+            "convert_pdf_to_markdown",
+            "run",
+            None,
+            {
+                "converted": converted,
+                "failed": failed,
+                "dry_run": args.dry_run,
+            },
+        )
         conn.close()
     except Exception:  # noqa: BLE001
         pass
@@ -99,4 +105,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

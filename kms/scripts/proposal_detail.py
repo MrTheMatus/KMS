@@ -14,7 +14,9 @@ from kms.scripts._cli import build_parser, load_setup_logging
 def main() -> int:
     p = build_parser("Show full detail for one or more proposals (JSON output).")
     p.add_argument("--proposal-id", type=int, default=None, help="Single proposal id")
-    p.add_argument("--item-path", type=str, default=None, help="Filter by item path (substring)")
+    p.add_argument(
+        "--item-path", type=str, default=None, help="Filter by item path (substring)"
+    )
     args = p.parse_args()
     cfg = load_setup_logging(args)
 
@@ -69,40 +71,42 @@ def main() -> int:
         except Exception:  # noqa: BLE001
             pass
 
-        results.append({
-            "proposal_id": r["proposal_id"],
-            "item_id": r["item_id"],
-            "item_path": r["item_path"],
-            "kind": r["kind"],
-            "item_status": r["item_status"],
-            "lifecycle_status": r.get("lifecycle_status"),
-            "suggested_action": r["suggested_action"],
-            "suggested_target": r["suggested_target"],
-            "reason": r["reason"],
-            "created_at": r.get("created_at"),
-            # Decision
-            "decision": r["decision"],
-            "reviewer": r.get("reviewer") or "",
-            "review_note": r.get("review_note") or "",
-            "override_target": r.get("override_target"),
-            "decided_at": r.get("decided_at"),
-            # Triage
-            "domain": triage.get("suggested_domain", ""),
-            "topics": triage.get("suggested_topics", []),
-            "confidence": triage.get("confidence", 0),
-            "summary": (triage.get("summary") or "")[:500],
-            # Artifact (post-apply)
-            "artifact_id": r.get("artifact_id"),
-            "source_note_path": r.get("source_note_path"),
-            "index_status": r.get("index_status") or "",
-            "applied_at": r.get("applied_at"),
-            # Execution
-            "execution_id": r.get("execution_id"),
-            "reverted_at": r.get("reverted_at"),
-            # Computed flags
-            "can_revert": bool(r.get("execution_id") and not r.get("reverted_at")),
-            "is_applied": bool(r.get("artifact_id")),
-        })
+        results.append(
+            {
+                "proposal_id": r["proposal_id"],
+                "item_id": r["item_id"],
+                "item_path": r["item_path"],
+                "kind": r["kind"],
+                "item_status": r["item_status"],
+                "lifecycle_status": r.get("lifecycle_status"),
+                "suggested_action": r["suggested_action"],
+                "suggested_target": r["suggested_target"],
+                "reason": r["reason"],
+                "created_at": r.get("created_at"),
+                # Decision
+                "decision": r["decision"],
+                "reviewer": r.get("reviewer") or "",
+                "review_note": r.get("review_note") or "",
+                "override_target": r.get("override_target"),
+                "decided_at": r.get("decided_at"),
+                # Triage
+                "domain": triage.get("suggested_domain", ""),
+                "topics": triage.get("suggested_topics", []),
+                "confidence": triage.get("confidence", 0),
+                "summary": (triage.get("summary") or "")[:500],
+                # Artifact (post-apply)
+                "artifact_id": r.get("artifact_id"),
+                "source_note_path": r.get("source_note_path"),
+                "index_status": r.get("index_status") or "",
+                "applied_at": r.get("applied_at"),
+                # Execution
+                "execution_id": r.get("execution_id"),
+                "reverted_at": r.get("reverted_at"),
+                # Computed flags
+                "can_revert": bool(r.get("execution_id") and not r.get("reverted_at")),
+                "is_applied": bool(r.get("artifact_id")),
+            }
+        )
 
     json.dump(results, sys.stdout, ensure_ascii=False, indent=2, default=str)
     print()

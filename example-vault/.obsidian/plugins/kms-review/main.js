@@ -635,7 +635,7 @@ var KmsNoticeModal = class extends import_obsidian.Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-notice-modal");
+    this.modalEl.addClass("kms-notice-modal");
     contentEl.createEl("h3", { text: this._title });
     contentEl.createEl("p", { cls: "kms-notice-message", text: this._message });
     if (this._detail) {
@@ -672,7 +672,7 @@ var KmsSearchModal = class extends import_obsidian.Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-search-modal");
+    this.modalEl.addClass("kms-search-modal");
     contentEl.createEl("h3", { text: t("searchTitle") });
     const inputRow = contentEl.createDiv({ cls: "kms-search-input-row" });
     const input = inputRow.createEl("input", {
@@ -774,7 +774,7 @@ var KmsDetailModal = class extends import_obsidian.Modal {
   async onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-detail-modal");
+    this.modalEl.addClass("kms-detail-modal");
     contentEl.createEl("h3", { text: t("detailTitle", this.proposalId) });
     const body = contentEl.createDiv({ cls: "kms-detail-body" });
     body.createEl("p", { cls: "kms-search-loading", text: t("detailLoading") });
@@ -888,7 +888,7 @@ var KmsRevertModal = class extends import_obsidian.Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-revert-modal");
+    this.modalEl.addClass("kms-revert-modal");
     contentEl.createEl("h3", { text: t("revertTitle") });
     contentEl.createEl("p", { text: t("revertDesc") });
     const inputRow = contentEl.createDiv({ cls: "kms-revert-input-row" });
@@ -969,7 +969,7 @@ var KmsBatchRevertModal = class extends import_obsidian.Modal {
   async onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-revert-modal");
+    this.modalEl.addClass("kms-revert-modal");
     contentEl.createEl("h3", { text: t("batchRevertTitle") });
     contentEl.createEl("p", { text: t("batchRevertDesc") });
     const listEl = contentEl.createDiv({ cls: "kms-search-results" });
@@ -1038,7 +1038,7 @@ var KmsConfirmModal = class extends import_obsidian.Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-confirm-modal");
+    this.modalEl.addClass("kms-confirm-modal");
     contentEl.createEl("h3", { text: t("confirmTitle") });
     contentEl.createEl("p", { text: this.message });
     const btnRow = contentEl.createDiv({ cls: "kms-confirm-actions" });
@@ -1415,7 +1415,7 @@ var KmsProgressModal = class extends import_obsidian.Modal {
   }
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("kms-progress-modal");
+    this.modalEl.addClass("kms-progress-modal");
     contentEl.createEl("h3", { text: `KMS: ${this.mode}` });
     this.listEl = contentEl.createEl("ul", { cls: "kms-progress-list" });
     for (const label of this.stepLabels) {
@@ -1482,7 +1482,7 @@ var KmsOnboardingWizard = class extends import_obsidian2.Modal {
   }
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("kms-wizard-modal");
+    this.modalEl.addClass("kms-wizard-modal");
     this._renderStep();
   }
   _renderStep() {
@@ -1810,7 +1810,7 @@ var KmsHelpModal = class extends import_obsidian2.Modal {
   onOpen() {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    contentEl.addClass("kms-wizard-modal");
+    this.modalEl.addClass("kms-wizard-modal");
     contentEl.createEl("h2", { text: t("helpTitle") });
     contentEl.createEl("p", { text: t("helpIntro") });
     const sections = t("helpSections");

@@ -41,7 +41,9 @@ def main() -> int:
 
     decision_filter = ""
     if args.pending_only:
-        decision_filter = "AND COALESCE(d.decision, 'pending') IN ('pending', 'postpone')"
+        decision_filter = (
+            "AND COALESCE(d.decision, 'pending') IN ('pending', 'postpone')"
+        )
 
     sql = f"""
         SELECT p.id AS proposal_id, p.item_id,
@@ -98,7 +100,9 @@ def main() -> int:
             domain = r["domain"] or "?"
             topics = ", ".join(r["topics"]) if r["topics"] else "-"
             print(f"#{r['proposal_id']}  [{domain}]  {r['item_path']}")
-            print(f"  topics: {topics}  | confidence: {r['confidence']:.2f}  | decision: {r['decision']}")
+            print(
+                f"  topics: {topics}  | confidence: {r['confidence']:.2f}  | decision: {r['decision']}"
+            )
             if r["summary"]:
                 print(f"  {r['summary'][:120]}")
             print()

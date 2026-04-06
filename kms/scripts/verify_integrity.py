@@ -20,7 +20,15 @@ from kms.scripts._cli import build_parser, load_setup_logging
 _LOG = logging.getLogger(__name__)
 
 _REQUIRED_DEPS = ["yaml", "jinja2", "pypdf"]
-_VAULT_DIRS = ["admin_dir", "inbox", "sources_web", "sources_pdf", "source_notes", "permanent_notes", "archive"]
+_VAULT_DIRS = [
+    "admin_dir",
+    "inbox",
+    "sources_web",
+    "sources_pdf",
+    "source_notes",
+    "permanent_notes",
+    "archive",
+]
 
 
 def _check_deps() -> list[dict]:
@@ -42,7 +50,9 @@ def _check_vault_structure(vp: dict) -> list[dict]:
             continue
         d = vp[key]
         if not d.is_dir():
-            issues.append({"check": "vault_dir", "path": str(d), "key": key, "status": "missing"})
+            issues.append(
+                {"check": "vault_dir", "path": str(d), "key": key, "status": "missing"}
+            )
     return issues
 
 
@@ -58,9 +68,13 @@ def _check_plugin(vp: dict) -> list[dict]:
         try:
             manifest = json.loads((plugin_dir / "manifest.json").read_text())
             if "version" not in manifest:
-                issues.append({"check": "plugin", "file": "manifest.json", "status": "no_version"})
+                issues.append(
+                    {"check": "plugin", "file": "manifest.json", "status": "no_version"}
+                )
         except (json.JSONDecodeError, OSError):
-            issues.append({"check": "plugin", "file": "manifest.json", "status": "parse_error"})
+            issues.append(
+                {"check": "plugin", "file": "manifest.json", "status": "parse_error"}
+            )
     return issues
 
 
@@ -70,7 +84,9 @@ def _check_config(cfg: dict) -> list[dict]:
     if not cfg.get("vault", {}).get("root"):
         issues.append({"check": "config", "field": "vault.root", "status": "missing"})
     if not cfg.get("database", {}).get("path"):
-        issues.append({"check": "config", "field": "database.path", "status": "missing"})
+        issues.append(
+            {"check": "config", "field": "database.path", "status": "missing"}
+        )
     return issues
 
 
@@ -89,16 +105,20 @@ def _check_db_consistency(conn, vault_root, vp) -> tuple[list, list, list]:
         full = vault_root / rel
         if not full.is_file():
             if item["status"] not in ("applied", "failed"):
-                missing_files.append({"id": item["id"], "path": rel, "status": item["status"]})
+                missing_files.append(
+                    {"id": item["id"], "path": rel, "status": item["status"]}
+                )
         else:
             current_hash = sha256_file(full)
             if item["hash"] and current_hash != item["hash"]:
-                hash_mismatches.append({
-                    "id": item["id"],
-                    "path": rel,
-                    "db_hash": item["hash"][:12] + "\u2026",
-                    "file_hash": current_hash[:12] + "\u2026",
-                })
+                hash_mismatches.append(
+                    {
+                        "id": item["id"],
+                        "path": rel,
+                        "db_hash": item["hash"][:12] + "\u2026",
+                        "file_hash": current_hash[:12] + "\u2026",
+                    }
+                )
 
     inbox = vp["inbox"]
     if inbox.is_dir():
@@ -115,9 +135,15 @@ def _check_db_consistency(conn, vault_root, vp) -> tuple[list, list, list]:
 
 
 def main() -> int:
-    p = build_parser("Check vault \u2194 SQLite consistency: missing files, hash mismatches, orphan DB rows.")
+    p = build_parser(
+        "Check vault \u2194 SQLite consistency: missing files, hash mismatches, orphan DB rows."
+    )
     p.add_argument("--json", action="store_true", help="Output results as JSON")
-    p.add_argument("--self-check", action="store_true", help="Full environment check (deps, config, vault, DB, plugin)")
+    p.add_argument(
+        "--self-check",
+        action="store_true",
+        help="Full environment check (deps, config, vault, DB, plugin)",
+    )
     args = p.parse_args()
     cfg = load_setup_logging(args)
     schema_path = project_root() / "kms" / "app" / "schema.sql"
@@ -129,7 +155,9 @@ def main() -> int:
     ensure_schema(conn, schema_path)
 
     # --- Core DB consistency check (always runs) ---
-    missing_files, hash_mismatches, orphan_files = _check_db_consistency(conn, vault_root, vp)
+    missing_files, hash_mismatches, orphan_files = _check_db_consistency(
+        conn, vault_root, vp
+    )
     conn.close()
 
     db_ok = not missing_files and not hash_mismatches and not orphan_files
@@ -160,9 +188,13 @@ def main() -> int:
             if env_issues:
                 print(f"Environment issues ({len(env_issues)}):")
                 for iss in env_issues:
-                    print(f"  [{iss['check']}] {iss.get('module') or iss.get('field') or iss.get('path') or iss.get('file')}: {iss['status']}")
+                    print(
+                        f"  [{iss['check']}] {iss.get('module') or iss.get('field') or iss.get('path') or iss.get('file')}: {iss['status']}"
+                    )
             else:
-                print("Environment check passed: deps, config, vault structure, plugin OK.")
+                print(
+                    "Environment check passed: deps, config, vault structure, plugin OK."
+                )
             print()
 
         if db_ok:
@@ -175,7 +207,9 @@ def main() -> int:
             if hash_mismatches:
                 print(f"Hash mismatches ({len(hash_mismatches)}):")
                 for h in hash_mismatches:
-                    print(f"  {h['path']} \u2014 DB: {h['db_hash']}, file: {h['file_hash']}")
+                    print(
+                        f"  {h['path']} \u2014 DB: {h['db_hash']}, file: {h['file_hash']}"
+                    )
             if orphan_files:
                 print(f"Inbox files not in DB ({len(orphan_files)}):")
                 for o in orphan_files:

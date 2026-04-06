@@ -1,9 +1,9 @@
 {
   "id": "kms-review",
-  "name": "KMS Review Queue",
+  "name": "KMS",
   "version": "0.3.1",
   "minAppVersion": "1.0.0",
-  "description": "Replaces YAML editing in review-queue.md with interactive checkboxes for approve/reject/postpone decisions.",
+  "description": "Local-first knowledge management: interactive review, search, bulk ops, revert, AnythingLLM Q&A, contradiction detection, onboarding wizard.",
   "author": "KMS",
   "isDesktopOnly": true
 }

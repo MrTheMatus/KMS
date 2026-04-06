@@ -47,11 +47,15 @@ def _write_config(tmp: Path, vault: Path, db: Path) -> Path:
     return p
 
 
-def _run(cmd: list[str], cwd: Path, env: dict | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str], cwd: Path, env: dict | None = None
+) -> subprocess.CompletedProcess[str]:
     e = {"PYTHONPATH": str(cwd)}
     if env:
         e.update(env)
-    return subprocess.run(cmd, cwd=cwd, env=e, capture_output=True, text=True, check=False)
+    return subprocess.run(
+        cmd, cwd=cwd, env=e, capture_output=True, text=True, check=False
+    )
 
 
 @pytest.fixture
@@ -72,7 +76,9 @@ def mini_repo(tmp_path: Path) -> Path:
         elif child.is_file():
             child.unlink()
     (inbox / "note.txt").write_text("hello kms", encoding="utf-8")
-    (tmp_path / "pyproject.toml").write_text((ROOT / "pyproject.toml").read_text(), encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        (ROOT / "pyproject.toml").read_text(), encoding="utf-8"
+    )
     return tmp_path
 
 
@@ -80,12 +86,24 @@ def test_scan_make_apply_dry_run(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable
     r = _run(
-        [py, "-m", "kms.scripts.scan_inbox", "--config", str(cwd / "kms" / "config" / "config.yaml")],
+        [
+            py,
+            "-m",
+            "kms.scripts.scan_inbox",
+            "--config",
+            str(cwd / "kms" / "config" / "config.yaml"),
+        ],
         cwd,
     )
     assert r.returncode == 0, r.stderr + r.stdout
     r2 = _run(
-        [py, "-m", "kms.scripts.make_review_queue", "--config", str(cwd / "kms" / "config" / "config.yaml")],
+        [
+            py,
+            "-m",
+            "kms.scripts.make_review_queue",
+            "--config",
+            str(cwd / "kms" / "config" / "config.yaml"),
+        ],
         cwd,
     )
     assert r2.returncode == 0, r2.stderr + r2.stdout
@@ -114,11 +132,20 @@ def test_apply_twice_idempotent(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable
     cfg = str(cwd / "kms" / "config" / "config.yaml")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
-    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd).returncode == 0
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    )
+    assert (
+        _run(
+            [py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd
+        ).returncode
+        == 0
+    )
     rq = cwd / "vault" / "00_Admin" / "review-queue.md"
     text = rq.read_text(encoding="utf-8")
-    rq.write_text(text.replace("decision: pending", "decision: approve"), encoding="utf-8")
+    rq.write_text(
+        text.replace("decision: pending", "decision: approve"), encoding="utf-8"
+    )
     r1 = _run([py, "-m", "kms.scripts.apply_decisions", "--config", cfg], cwd)
     assert r1.returncode == 0, r1.stderr + r1.stdout
     assert (cwd / "vault" / "10_Sources" / "web" / "note.txt").is_file()
@@ -130,12 +157,21 @@ def test_apply_missing_source_marks_failed(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable
     cfg = str(cwd / "kms" / "config" / "config.yaml")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
-    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd).returncode == 0
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    )
+    assert (
+        _run(
+            [py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd
+        ).returncode
+        == 0
+    )
 
     rq = cwd / "vault" / "00_Admin" / "review-queue.md"
     text = rq.read_text(encoding="utf-8")
-    rq.write_text(text.replace("decision: pending", "decision: approve"), encoding="utf-8")
+    rq.write_text(
+        text.replace("decision: pending", "decision: approve"), encoding="utf-8"
+    )
 
     source = cwd / "vault" / "00_Inbox" / "note.txt"
     source.unlink()
@@ -143,7 +179,9 @@ def test_apply_missing_source_marks_failed(mini_repo: Path) -> None:
     assert r.returncode == 3, r.stderr + r.stdout
 
     conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
-    status = conn.execute("SELECT status FROM items WHERE path = ?", ("00_Inbox/note.txt",)).fetchone()
+    status = conn.execute(
+        "SELECT status FROM items WHERE path = ?", ("00_Inbox/note.txt",)
+    ).fetchone()
     audit_err = conn.execute(
         "SELECT error_message FROM audit_log WHERE action = 'apply_decisions' ORDER BY id DESC LIMIT 1"
     ).fetchone()
@@ -158,8 +196,12 @@ def test_scan_inbox_ignores_underscore_reports(mini_repo: Path) -> None:
     py = sys.executable
     cfg = str(cwd / "kms" / "config" / "config.yaml")
 
-    (cwd / "vault" / "00_Inbox" / "_topics_discovered.md").write_text("# report\n", encoding="utf-8")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    (cwd / "vault" / "00_Inbox" / "_topics_discovered.md").write_text(
+        "# report\n", encoding="utf-8"
+    )
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    )
 
     conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
     found = conn.execute(
@@ -174,8 +216,15 @@ def test_apply_target_collision_marks_failed(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable
     cfg = str(cwd / "kms" / "config" / "config.yaml")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
-    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd).returncode == 0
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    )
+    assert (
+        _run(
+            [py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd
+        ).returncode
+        == 0
+    )
 
     target = cwd / "vault" / "10_Sources" / "web" / "note.txt"
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -183,12 +232,16 @@ def test_apply_target_collision_marks_failed(mini_repo: Path) -> None:
 
     rq = cwd / "vault" / "00_Admin" / "review-queue.md"
     text = rq.read_text(encoding="utf-8")
-    rq.write_text(text.replace("decision: pending", "decision: approve"), encoding="utf-8")
+    rq.write_text(
+        text.replace("decision: pending", "decision: approve"), encoding="utf-8"
+    )
     r = _run([py, "-m", "kms.scripts.apply_decisions", "--config", cfg], cwd)
     assert r.returncode == 3, r.stderr + r.stdout
 
     conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
-    status = conn.execute("SELECT status FROM items WHERE path = ?", ("00_Inbox/note.txt",)).fetchone()
+    status = conn.execute(
+        "SELECT status FROM items WHERE path = ?", ("00_Inbox/note.txt",)
+    ).fetchone()
     audit_err = conn.execute(
         "SELECT error_message FROM audit_log WHERE action = 'apply_decisions' ORDER BY id DESC LIMIT 1"
     ).fetchone()
@@ -202,12 +255,21 @@ def test_reject_archives_file(mini_repo: Path) -> None:
     cwd = mini_repo
     py = sys.executable
     cfg = str(cwd / "kms" / "config" / "config.yaml")
-    assert _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
-    assert _run([py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd).returncode == 0
+    assert (
+        _run([py, "-m", "kms.scripts.scan_inbox", "--config", cfg], cwd).returncode == 0
+    )
+    assert (
+        _run(
+            [py, "-m", "kms.scripts.make_review_queue", "--config", cfg], cwd
+        ).returncode
+        == 0
+    )
 
     rq = cwd / "vault" / "00_Admin" / "review-queue.md"
     text = rq.read_text(encoding="utf-8")
-    rq.write_text(text.replace("decision: pending", "decision: reject"), encoding="utf-8")
+    rq.write_text(
+        text.replace("decision: pending", "decision: reject"), encoding="utf-8"
+    )
 
     r = _run([py, "-m", "kms.scripts.apply_decisions", "--config", cfg], cwd)
     assert r.returncode == 0, r.stderr + r.stdout
@@ -219,6 +281,8 @@ def test_reject_archives_file(mini_repo: Path) -> None:
     assert len(archived_files) == 1
 
     conn = sqlite3.connect(cwd / "kms" / "data" / "state.db")
-    status = conn.execute("SELECT status FROM items WHERE path LIKE ?", ("%note.txt%",)).fetchone()
+    status = conn.execute(
+        "SELECT status FROM items WHERE path LIKE ?", ("%note.txt%",)
+    ).fetchone()
     conn.close()
     assert status is not None and status[0] == "archived"

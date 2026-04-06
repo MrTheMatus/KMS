@@ -42,14 +42,61 @@ class NoteMatch:
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+")
 
 # Common stopwords that add noise to matching
-_STOPWORDS = frozenset({
-    "the", "and", "for", "that", "this", "with", "from", "are", "was", "but",
-    "not", "you", "all", "can", "had", "her", "one", "our", "out", "has",
-    "have", "been", "will", "they", "its", "also", "use", "jak", "jest",
-    "nie", "przy", "dla", "lub", "ale", "czy", "pod", "nad", "bez",
-    "kod", "code", "jest", "może", "oraz", "tego", "które", "jest",
-    "gdzie", "jako", "tylko", "jednak", "więc",
-})
+_STOPWORDS = frozenset(
+    {
+        "the",
+        "and",
+        "for",
+        "that",
+        "this",
+        "with",
+        "from",
+        "are",
+        "was",
+        "but",
+        "not",
+        "you",
+        "all",
+        "can",
+        "had",
+        "her",
+        "one",
+        "our",
+        "out",
+        "has",
+        "have",
+        "been",
+        "will",
+        "they",
+        "its",
+        "also",
+        "use",
+        "jak",
+        "jest",
+        "nie",
+        "przy",
+        "dla",
+        "lub",
+        "ale",
+        "czy",
+        "pod",
+        "nad",
+        "bez",
+        "kod",
+        "code",
+        "jest",
+        "może",
+        "oraz",
+        "tego",
+        "które",
+        "jest",
+        "gdzie",
+        "jako",
+        "tylko",
+        "jednak",
+        "więc",
+    }
+)
 
 
 def _tokenize(text: str) -> set[str]:
@@ -74,7 +121,7 @@ def _tokenize_counted(text: str) -> Counter:
 def _bigrams(text: str) -> set[str]:
     """Extract word bigrams for multi-word concept matching."""
     words = [t.lower() for t in _TOKEN_RE.findall(text) if len(t) > 2]
-    return {f"{words[i]}_{words[i+1]}" for i in range(len(words) - 1)}
+    return {f"{words[i]}_{words[i + 1]}" for i in range(len(words) - 1)}
 
 
 def _extract_title(text: str, fallback: str) -> str:
@@ -120,17 +167,19 @@ def load_permanent_notes(permanent_dir: Path) -> list[PermanentNote]:
         title = _extract_title(txt, p.stem)
         fm = _extract_frontmatter(txt)
         topics_list = fm.get("topics", "").split(",") if fm.get("topics") else []
-        out.append(PermanentNote(
-            path=p,
-            title=title,
-            text=txt,
-            tokens=_tokenize(txt),
-            domain=fm.get("domain", ""),
-            topics=topics_list,
-            title_tokens=_tokenize(title),
-            bigrams=_bigrams(txt),
-            token_counts=_tokenize_counted(txt),
-        ))
+        out.append(
+            PermanentNote(
+                path=p,
+                title=title,
+                text=txt,
+                tokens=_tokenize(txt),
+                domain=fm.get("domain", ""),
+                topics=topics_list,
+                title_tokens=_tokenize(title),
+                bigrams=_bigrams(txt),
+                token_counts=_tokenize_counted(txt),
+            )
+        )
     return out
 
 
@@ -143,8 +192,7 @@ def _compute_idf(notes: list[PermanentNote]) -> dict[str, float]:
     for note in notes:
         doc_freq.update(note.tokens)
     return {
-        token: math.log((n_docs + 1) / (df + 1)) + 1.0
-        for token, df in doc_freq.items()
+        token: math.log((n_docs + 1) / (df + 1)) + 1.0 for token, df in doc_freq.items()
     }
 
 
@@ -184,18 +232,22 @@ def find_best_matches(
         reasons = []
         if title_overlap:
             reasons.append(f"tytuł: {', '.join(sorted(title_overlap)[:5])}")
-        top_shared = sorted(common_tokens, key=lambda t: idf.get(t, 0), reverse=True)[:5]
+        top_shared = sorted(common_tokens, key=lambda t: idf.get(t, 0), reverse=True)[
+            :5
+        ]
         reasons.append(f"tokeny: {', '.join(top_shared)}")
         if common_bigrams:
             reasons.append(f"bigramy: {', '.join(sorted(common_bigrams)[:3])}")
 
-        ranked.append(NoteMatch(
-            note_path=n.path.as_posix(),
-            title=n.title,
-            score=round(score, 4),
-            domain=n.domain,
-            topics=n.topics,
-            match_reason="; ".join(reasons),
-        ))
+        ranked.append(
+            NoteMatch(
+                note_path=n.path.as_posix(),
+                title=n.title,
+                score=round(score, 4),
+                domain=n.domain,
+                topics=n.topics,
+                match_reason="; ".join(reasons),
+            )
+        )
     ranked.sort(key=lambda x: x.score, reverse=True)
     return ranked[:top_k]

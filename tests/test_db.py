@@ -36,8 +36,20 @@ class TestSchema:
     def test_init_creates_all_tables(self, tmp_path: Path) -> None:
         conn = connect(tmp_path / "test.db")
         init_schema(conn, SCHEMA)
-        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        expected = {"items", "proposals", "decisions", "artifacts", "executions", "audit_log"}
+        tables = {
+            r[0]
+            for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        expected = {
+            "items",
+            "proposals",
+            "decisions",
+            "artifacts",
+            "executions",
+            "audit_log",
+        }
         assert expected.issubset(tables)
         conn.close()
 
@@ -45,7 +57,12 @@ class TestSchema:
         conn = connect(tmp_path / "test.db")
         ensure_schema(conn, SCHEMA)
         ensure_schema(conn, SCHEMA)
-        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        tables = {
+            r[0]
+            for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
         assert "items" in tables
         conn.close()
 
@@ -77,7 +94,9 @@ class TestAudit:
         conn = connect(tmp_path / "test.db")
         ensure_schema(conn, SCHEMA)
         audit(conn, "test_action", "item", "42", {"key": "value"})
-        rows = conn.execute("SELECT * FROM audit_log WHERE action = 'test_action'").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM audit_log WHERE action = 'test_action'"
+        ).fetchall()
         assert len(rows) == 1
         assert rows[0]["entity_type"] == "item"
         assert rows[0]["entity_id"] == "42"
@@ -89,7 +108,9 @@ class TestAudit:
         conn = connect(tmp_path / "test.db")
         ensure_schema(conn, SCHEMA)
         audit(conn, "fail_action", error_message="something broke")
-        row = conn.execute("SELECT error_message FROM audit_log WHERE action = 'fail_action'").fetchone()
+        row = conn.execute(
+            "SELECT error_message FROM audit_log WHERE action = 'fail_action'"
+        ).fetchone()
         assert row["error_message"] == "something broke"
         conn.close()
 
@@ -97,7 +118,9 @@ class TestAudit:
         conn = connect(tmp_path / "test.db")
         ensure_schema(conn, SCHEMA)
         audit(conn, "no_payload_action")
-        row = conn.execute("SELECT payload_json FROM audit_log WHERE action = 'no_payload_action'").fetchone()
+        row = conn.execute(
+            "SELECT payload_json FROM audit_log WHERE action = 'no_payload_action'"
+        ).fetchone()
         assert row["payload_json"] is None
         conn.close()
 

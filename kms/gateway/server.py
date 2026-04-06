@@ -40,7 +40,9 @@ class _GatewayHandler(BaseHTTPRequestHandler):
     def _check_auth(self) -> bool:
         token = self.server.token
         if not token:
-            self._json_error(HTTPStatus.INTERNAL_SERVER_ERROR, "KMS_GATEWAY_TOKEN not set")
+            self._json_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR, "KMS_GATEWAY_TOKEN not set"
+            )
             return False
         auth = self.headers.get("Authorization", "")
         if auth != f"Bearer {token}":
@@ -92,16 +94,18 @@ class _GatewayHandler(BaseHTTPRequestHandler):
         result = []
         for r in rows:
             meta = _parse_meta(r.get("suggested_metadata_json"))
-            result.append({
-                "proposal_id": r["proposal_id"],
-                "path": r["path"],
-                "action": r["suggested_action"],
-                "target": r["suggested_target"],
-                "domain": meta.get("domain"),
-                "topics": meta.get("topics", []),
-                "summary": meta.get("summary", ""),
-                "review_note": r["review_note"],
-            })
+            result.append(
+                {
+                    "proposal_id": r["proposal_id"],
+                    "path": r["path"],
+                    "action": r["suggested_action"],
+                    "target": r["suggested_target"],
+                    "domain": meta.get("domain"),
+                    "topics": meta.get("topics", []),
+                    "summary": meta.get("summary", ""),
+                    "review_note": r["review_note"],
+                }
+            )
         conn.close()
         self._json_response(result)
 
@@ -122,11 +126,13 @@ class _GatewayHandler(BaseHTTPRequestHandler):
         )
         conn.close()
 
-        self._json_response({
-            "counts": counts,
-            "total": sum(counts.values()),
-            "last_batch": last_batch[0] if last_batch else None,
-        })
+        self._json_response(
+            {
+                "counts": counts,
+                "total": sum(counts.values()),
+                "last_batch": last_batch[0] if last_batch else None,
+            }
+        )
 
     def _handle_set_decisions(self) -> None:
         """Accept JSON array of {proposal_id, decision, review_note?}."""
@@ -185,10 +191,13 @@ class _GatewayHandler(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
 
-        self._json_response({
-            "updated": updated,
-            "errors": errors,
-        }, status=HTTPStatus.OK if not errors else HTTPStatus.MULTI_STATUS)
+        self._json_response(
+            {
+                "updated": updated,
+                "errors": errors,
+            },
+            status=HTTPStatus.OK if not errors else HTTPStatus.MULTI_STATUS,
+        )
 
     # ── Helpers ───────────────────────────────────────────
 
@@ -270,7 +279,9 @@ def main() -> int:
     import argparse
 
     p = argparse.ArgumentParser(description="KMS thin remote gateway (decisions only)")
-    p.add_argument("--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1)")
+    p.add_argument(
+        "--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1)"
+    )
     p.add_argument("--port", type=int, default=8780, help="Port (default: 8780)")
     p.add_argument(
         "--db",
@@ -279,7 +290,9 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
 
     token = os.environ.get("KMS_GATEWAY_TOKEN", "")
     if not token:
@@ -290,8 +303,12 @@ def main() -> int:
     schema_path = project_root() / "kms" / "app" / "schema.sql"
 
     server = GatewayServer((args.host, args.port), db_path, schema_path, token)
-    _LOG.info("KMS Gateway listening on %s:%d (token: %s...)", args.host, args.port, token[:4])
-    _LOG.info("Endpoints: GET /api/pending, GET /api/status, POST /api/decisions, GET /api/health")
+    _LOG.info(
+        "KMS Gateway listening on %s:%d (token: %s...)", args.host, args.port, token[:4]
+    )
+    _LOG.info(
+        "Endpoints: GET /api/pending, GET /api/status, POST /api/decisions, GET /api/health"
+    )
     _LOG.info("Auth: Authorization: Bearer <KMS_GATEWAY_TOKEN>")
 
     try:
