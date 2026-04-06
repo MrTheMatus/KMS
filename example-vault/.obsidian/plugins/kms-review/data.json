@@ -2,7 +2,10 @@
   "pythonPath": "",
   "projectRoot": "",
   "language": "pl",
-  "anythingllmEnabled": false,
+  "profile": "ai-local",
+  "anythingllmEnabled": true,
+  "anythingllmUrl": "http://localhost:3001",
   "anythingllmSlug": "my-workspace",
+  "anythingllmApiKey": "MWSHHPN-YYB43H9-HZRXEW1-V50TX8A",
   "onboardingDone": true
 }

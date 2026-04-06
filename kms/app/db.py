@@ -16,11 +16,17 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def connect(db_path: Path) -> sqlite3.Connection:
+def connect(db_path: Path, *, timeout: float = 30.0) -> sqlite3.Connection:
+    """Open the KMS SQLite database.
+
+    Uses a non-zero busy timeout and WAL so concurrent CLI, gateway, and
+    scripts wait briefly instead of failing with database is locked.
+    """
     ensure_dir(db_path.parent)
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 
@@ -30,6 +36,14 @@ def init_schema(conn: sqlite3.Connection, schema_path: Path) -> None:
     conn.commit()
 
 
+def _lifecycle_needs_backfill(conn: sqlite3.Connection) -> bool:
+    """True if any proposal is missing a derived lifecycle (needs recompute)."""
+    row = conn.execute(
+        "SELECT 1 FROM proposals WHERE lifecycle_status IS NULL LIMIT 1"
+    ).fetchone()
+    return row is not None
+
+
 def ensure_schema(conn: sqlite3.Connection, schema_path: Path) -> None:
     """Idempotent: create tables if missing."""
     cur = conn.execute(
@@ -37,13 +51,15 @@ def ensure_schema(conn: sqlite3.Connection, schema_path: Path) -> None:
     )
     if cur.fetchone() is None:
         init_schema(conn, schema_path)
-    _migrate_columns(conn)
+    migrated = _migrate_columns(conn)
     _ensure_batches(conn)
     _ensure_executions_table(conn)
-    # Denormalized lifecycle cache on proposals (cheap for small DBs)
-    from kms.app.lifecycle import recompute_lifecycle
+    # Denormalized lifecycle cache: only recompute after DDL changes or NULL rows.
+    # Avoids write locks on every read-only script/gateway open during long jobs (e.g. retriage).
+    if migrated or _lifecycle_needs_backfill(conn):
+        from kms.app.lifecycle import recompute_lifecycle
 
-    recompute_lifecycle(conn)
+        recompute_lifecycle(conn)
 
 
 def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
@@ -51,12 +67,15 @@ def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
     return any(r[1] == column for r in rows)
 
 
-def _migrate_columns(conn: sqlite3.Connection) -> None:
-    """Add missing columns for forward-compatible local upgrades."""
+def _migrate_columns(conn: sqlite3.Connection) -> bool:
+    """Add missing columns for forward-compatible local upgrades. Returns True if DB was mutated."""
+    changed = False
     if not _has_column(conn, "decisions", "review_note"):
         conn.execute("ALTER TABLE decisions ADD COLUMN review_note TEXT")
+        changed = True
     if not _has_column(conn, "proposals", "lifecycle_status"):
         conn.execute("ALTER TABLE proposals ADD COLUMN lifecycle_status TEXT")
+        changed = True
     if not _has_column(conn, "artifacts", "index_status"):
         conn.execute(
             "ALTER TABLE artifacts ADD COLUMN index_status TEXT DEFAULT 'pending'"
@@ -66,9 +85,12 @@ def _migrate_columns(conn: sqlite3.Connection) -> None:
                WHERE workspace_name IS NOT NULL AND TRIM(workspace_name) != ''
                  AND (index_status IS NULL OR index_status = 'pending')"""
         )
+        changed = True
     if not _has_column(conn, "artifacts", "anythingllm_doc_location"):
         conn.execute("ALTER TABLE artifacts ADD COLUMN anythingllm_doc_location TEXT")
+        changed = True
     conn.commit()
+    return changed
 
 
 def _ensure_executions_table(conn: sqlite3.Connection) -> None:

@@ -83,6 +83,19 @@ export class KmsSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName(t("settingAnythingLLMUrl"))
+      .setDesc(t("settingAnythingLLMUrlDesc"))
+      .addText((text) =>
+        text
+          .setPlaceholder("http://localhost:3001")
+          .setValue(this.plugin.settings.anythingllmUrl)
+          .onChange(async (value) => {
+            this.plugin.settings.anythingllmUrl = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName(t("settingSlug"))
       .setDesc(t("settingSlugDesc"))
       .addText((text) =>
@@ -91,6 +104,19 @@ export class KmsSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.anythingllmSlug)
           .onChange(async (value) => {
             this.plugin.settings.anythingllmSlug = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(t("settingApiKey"))
+      .setDesc(t("settingApiKeyDesc"))
+      .addText((text) =>
+        text
+          .setPlaceholder("AK-xxxxxxxx")
+          .setValue(this.plugin.settings.anythingllmApiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.anythingllmApiKey = value.trim();
             await this.plugin.saveSettings();
           }),
       );

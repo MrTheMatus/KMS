@@ -264,6 +264,37 @@ _CLASSIFY_SYSTEM = (
     "Żadnego dodatkowego tekstu, komentarzy ani markdown."
 )
 
+# ── Contradiction detection ───────────────────────────────────────
+
+_CONTRADICTION_SYSTEM = (
+    "Jesteś weryfikatorem spójności bazy wiedzy inżyniera. "
+    "Odpowiadaj WYŁĄCZNIE poprawnym JSON-em. "
+    "Żadnego dodatkowego tekstu, komentarzy ani markdown."
+)
+
+_CONTRADICTION_PROMPT = """\
+Porównaj NOWĄ NOTATKĘ z ISTNIEJĄCĄ NOTATKĄ z bazy wiedzy.
+Czy nowa notatka PRZECZY lub JEST SPRZECZNA z istniejącą?
+
+Szukaj:
+- Sprzecznych twierdzeń technicznych (np. "X jest pass-by-reference" vs "X jest pass-by-value")
+- Sprzecznych rekomendacji (np. "używaj X" vs "nie używaj X")
+- Wzajemnie wykluczających się faktów
+
+NIE zgłaszaj jako sprzeczność:
+- Uzupełniających się informacji
+- Informacji o różnych wersjach/kontekstach (np. Python 2 vs Python 3)
+- Różnego poziomu szczegółowości
+
+Zwróć JSON: {{"contradiction": true/false, "severity": "none"|"low"|"high", \
+"explanation": "krótkie wyjaśnienie po polsku (1-2 zdania)"}}
+
+ISTNIEJĄCA NOTATKA (tytuł: {existing_title}):
+{existing_content}
+
+NOWA NOTATKA (tytuł: {new_title}):
+{new_content}"""
+
 _CLASSIFY_PROMPT = """\
 Przeanalizuj poniższą notatkę i zwróć JSON z dwoma polami:
 - "domain": jedna etykieta domeny (np. cpp, angular, sql, python, java, typescript, \
@@ -278,6 +309,40 @@ Zwróć TYLKO JSON: {{"domain": "...", "topics": ["...", "..."]}}
 Tytuł: {title}
 Treść (fragment):
 {content}"""
+
+
+def check_contradiction(
+    client: LLMClient,
+    new_text: str,
+    existing_text: str,
+    *,
+    new_title: str = "",
+    existing_title: str = "",
+) -> dict:
+    """Check if new note contradicts existing knowledge.
+
+    Returns dict with keys: contradiction (bool), severity (str), explanation (str).
+    """
+    prompt = _CONTRADICTION_PROMPT.format(
+        existing_title=existing_title or "(bez tytułu)",
+        existing_content=existing_text[:2000],
+        new_title=new_title or "(bez tytułu)",
+        new_content=new_text[:2000],
+    )
+    try:
+        raw = client.generate(prompt, system=_CONTRADICTION_SYSTEM).strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+        data = json.loads(raw)
+        return {
+            "contradiction": bool(data.get("contradiction", False)),
+            "severity": str(data.get("severity", "none")).lower(),
+            "explanation": str(data.get("explanation", "")),
+        }
+    except Exception as exc:  # noqa: BLE001
+        _LOG.debug("Contradiction check failed: %s", exc)
+        return {"contradiction": False, "severity": "none", "explanation": ""}
 
 
 def llm_classify(client: LLMClient, text: str, title: str = "") -> tuple[str, list[str]]:
@@ -346,15 +411,53 @@ def triage_against_permanent_notes(
     if not topics:
         topics = _detect_topics(source_text)
 
+    # Contradiction check — only when LLM available and strong match exists
+    contradiction: dict = {}
+    if llm_client is not None and matches and matches[0].score >= 0.12:
+        top_match = matches[0]
+        # Read the existing note content for comparison
+        existing_path = Path(top_match.note_path)
+        if existing_path.is_file():
+            try:
+                existing_text = existing_path.read_text(encoding="utf-8")
+                contradiction = check_contradiction(
+                    llm_client,
+                    source_text,
+                    existing_text,
+                    new_title=title,
+                    existing_title=top_match.title,
+                )
+                if contradiction.get("contradiction"):
+                    _LOG.warning(
+                        "Contradiction detected vs «%s» (%s): %s",
+                        top_match.title,
+                        contradiction.get("severity"),
+                        contradiction.get("explanation"),
+                    )
+            except OSError:
+                pass
+
     if matches and matches[0].score >= 0.12:
         top = matches[0]
         reason_detail = top.match_reason if hasattr(top, "match_reason") and top.match_reason else ""
+
+        # If contradiction found, override action to flag for human review
+        if contradiction.get("contradiction") and contradiction.get("severity") == "high":
+            perm_action = "review-contradiction"
+            reasoning = (
+                f"⚠ SPRZECZNOŚĆ z «{top.title}» (score={top.score:.2f}): "
+                f"{contradiction.get('explanation', '')}. {reason_detail}"
+            )
+        else:
+            perm_action = "update-existing"
+            reasoning = f"Silne pokrycie z «{top.title}» (score={top.score:.2f}). {reason_detail}"
+
         suggestion = TriageSuggestion(
             summary=summary,
             confidence=min(0.95, top.score + 0.35),
-            suggested_permanent_note_action="update-existing",
+            suggested_permanent_note_action=perm_action,
             suggested_existing_note_path=top.note_path,
-            reasoning=f"Silne pokrycie z «{top.title}» (score={top.score:.2f}). {reason_detail}",
+            reasoning=reasoning,
             suggested_domain=top.domain or domain,
             suggested_topics=top.topics if top.topics else topics,
         )
@@ -370,4 +473,6 @@ def triage_against_permanent_notes(
         )
     payload = asdict(suggestion)
     payload["top_matches"] = [asdict(m) for m in matches]
+    if contradiction:
+        payload["contradiction"] = contradiction
     return payload

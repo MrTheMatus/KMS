@@ -3,8 +3,8 @@ import { REVIEW_QUEUE_FILENAME, DASHBOARD_FILENAME, KMS_BEGIN, KMS_END, PANEL_VI
 import { _t } from "./i18n";
 import { KmsPanelView } from "./panel";
 import { KmsSettingsTab } from "./settings";
-import { KmsOnboardingWizard } from "./wizard";
-import { KmsSearchModal, KmsDetailModal, KmsRevertModal, KmsBatchRevertModal, KmsConfirmModal, KmsProgressModal } from "./modals";
+import { KmsOnboardingWizard, KmsHelpModal } from "./wizard";
+import { KmsNoticeModal, KmsSearchModal, KmsDetailModal, KmsRevertModal, KmsBatchRevertModal, KmsConfirmModal, KmsProgressModal, KmsAskLlmModal } from "./modals";
 
 const { exec } = require("child_process");
 const path = require("path");
@@ -34,6 +34,21 @@ export default class KmsReviewPlugin extends Plugin {
     this.addCommand({ id: "revert-proposal", name: "Revert applied proposal (enter proposal ID)", callback: () => new KmsRevertModal(this.app, this).open() });
     this.addCommand({ id: "revert-batch", name: "Revert batch (undo entire bulk operation)", callback: () => new KmsBatchRevertModal(this.app, this).open() });
     this.addCommand({ id: "run-wizard", name: "Run setup wizard", callback: () => new KmsOnboardingWizard(this.app, this).open() });
+    this.addCommand({ id: "ask-llm", name: "Ask knowledge base (AnythingLLM)", callback: () => {
+      if (!this.settings.anythingllmEnabled) {
+        new KmsNoticeModal(this.app, this,
+          "AnythingLLM",
+          _t(this.settings, "askNoAnythingLLM"),
+          { actions: [{ label: _t(this.settings, "wizOpenSettings"), cls: "mod-cta", callback: () => {
+            this.app.setting.open();
+            this.app.setting.openTabById("kms-review");
+          }}]},
+        ).open();
+        return;
+      }
+      new KmsAskLlmModal(this.app, this).open();
+    }});
+    this.addCommand({ id: "show-help", name: "Help & how-to", callback: () => new KmsHelpModal(this.app, this).open() });
 
     this.addRibbonIcon("layout-dashboard", "KMS Control Panel", () => this._activatePanel());
 
@@ -87,10 +102,12 @@ export default class KmsReviewPlugin extends Plugin {
     const python = this._getPython();
     const t = (k, ...a) => _t(this.settings, k, ...a);
 
+    const aiFlag = this.settings.profile !== "core" ? " --ai-summary" : "";
+
     const pipelines = {
       refresh: [
         { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: t("scanning") },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: t("generating") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue${aiFlag}`, label: t("generating") },
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
       apply: [
@@ -99,7 +116,7 @@ export default class KmsReviewPlugin extends Plugin {
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
       retriage: [
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: t("retriaging") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage${aiFlag}`, label: t("retriaging") },
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") },
       ],
     };
@@ -180,13 +197,21 @@ export default class KmsReviewPlugin extends Plugin {
     if (file) {
       await this.app.workspace.openLinkText(file.path, "", false);
     } else {
-      new Notice(_t(this.settings, "fileNotFound", filePath));
+      const t = (k, ...a) => _t(this.settings, k, ...a);
+      new KmsNoticeModal(this.app, this, t("pipelineError"), t("fileNotFound", filePath), {
+        actions: [{ label: t("btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }],
+      }).open();
     }
   }
 
   async _scrollToProposal(proposalId) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
-    if (!file) { new Notice(_t(this.settings, "reviewQueueNotFound")); return; }
+    if (!file) {
+      new KmsNoticeModal(this.app, this, _t(this.settings, "pipelineError"), _t(this.settings, "reviewQueueNotFound"), {
+        actions: [{ label: _t(this.settings, "btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }],
+      }).open();
+      return;
+    }
     const leaf = await this.app.workspace.getLeaf(false);
     await leaf.openFile(file);
 
@@ -219,7 +244,13 @@ export default class KmsReviewPlugin extends Plugin {
 
   async _bulkDecision(decision) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
-    if (!file) { new Notice(_t(this.settings, "reviewQueueNotFound")); return; }
+    const t = (k, ...a) => _t(this.settings, k, ...a);
+    if (!file) {
+      new KmsNoticeModal(this.app, this, t("pipelineError"), t("reviewQueueNotFound"), {
+        actions: [{ label: t("btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }],
+      }).open();
+      return;
+    }
 
     let content = await this.app.vault.read(file);
     const blocks = this._splitKmsBlocks(content);
@@ -230,8 +261,10 @@ export default class KmsReviewPlugin extends Plugin {
       if (m && m[1] === "pending") count++;
     }
 
-    const t = (k, ...a) => _t(this.settings, k, ...a);
-    if (count === 0) { new Notice(t("noPending")); return; }
+    if (count === 0) {
+      new KmsNoticeModal(this.app, this, t("bulkTitle"), t("noPending")).open();
+      return;
+    }
 
     const qKey = decision === "approve" ? "bulkApproveQ" : "bulkRejectQ";
     const confirmed = await new Promise((resolve) => {
@@ -251,7 +284,9 @@ export default class KmsReviewPlugin extends Plugin {
     }
 
     await this.app.vault.modify(file, freshBlocks.map((b) => b.text).join(""));
-    new Notice(t("bulkDone", applied, decision));
+    new KmsNoticeModal(this.app, this, t("bulkTitle"), t("bulkDone", applied, decision), {
+      actions: [{ label: t("btnApply"), cls: "mod-cta", callback: () => this._runPipeline("apply") }],
+    }).open();
     this._reloadKmsViews();
     this._refreshPanel();
   }
@@ -290,7 +325,7 @@ export default class KmsReviewPlugin extends Plugin {
         container.className = `kms-review-block kms-decision-${d.value}`;
         header.querySelector(".kms-review-badge").textContent = d.value.toUpperCase();
         await this._updateField(ctx.sourcePath, parsed.proposal_id, "decision", d.value);
-        new Notice(_t(this.settings, "proposalDecision", parsed.proposal_id, d.value));
+        new Notice(`${_t(this.settings, "proposalDecision", parsed.proposal_id, d.value)} — ${_t(this.settings, "applyHint")}`, 6000);
       });
     }
 

@@ -22,7 +22,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 
-from kms.app.config import abs_path, load_config
 from kms.app.db import audit, connect, ensure_schema, fetch_all_dicts, utc_now_iso
 from kms.app.paths import project_root
 
@@ -52,14 +51,16 @@ class _GatewayHandler(BaseHTTPRequestHandler):
     # ── Routing ───────────────────────────────────────────
 
     def do_GET(self) -> None:
+        # Health is public (liveness probe, no secrets exposed)
+        if self.path == "/api/health":
+            self._json_response({"ok": True, "version": "0.3.1"})
+            return
         if not self._check_auth():
             return
         if self.path == "/api/pending":
             self._handle_pending()
         elif self.path == "/api/status":
             self._handle_status()
-        elif self.path == "/api/health":
-            self._json_response({"ok": True, "version": "0.3.1"})
         else:
             self._json_error(HTTPStatus.NOT_FOUND, "Not found")
 
@@ -247,12 +248,35 @@ def _parse_meta(raw: str | None) -> dict:
         return {}
 
 
+def _resolve_db_path(cli_db: str | None) -> Path:
+    """Resolve database path: CLI flag → config YAML → default."""
+    if cli_db:
+        p = Path(cli_db)
+        return p if p.is_absolute() else (project_root() / p).resolve()
+
+    # Try loading from config.yaml (requires PyYAML — optional dep)
+    try:
+        from kms.app.config import abs_path, load_config
+
+        return abs_path(load_config(), "database", "path")
+    except ImportError:
+        pass
+
+    # Sensible default
+    return (project_root() / "kms" / "data" / "state.db").resolve()
+
+
 def main() -> int:
     import argparse
 
     p = argparse.ArgumentParser(description="KMS thin remote gateway (decisions only)")
     p.add_argument("--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1)")
     p.add_argument("--port", type=int, default=8780, help="Port (default: 8780)")
+    p.add_argument(
+        "--db",
+        default=None,
+        help="Path to SQLite database (default: from config.yaml or kms/data/state.db)",
+    )
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -262,8 +286,7 @@ def main() -> int:
         _LOG.error("KMS_GATEWAY_TOKEN environment variable is required")
         return 1
 
-    cfg = load_config()
-    db_path = abs_path(cfg, "database", "path")
+    db_path = _resolve_db_path(args.db)
     schema_path = project_root() / "kms" / "app" / "schema.sql"
 
     server = GatewayServer((args.host, args.port), db_path, schema_path, token)

@@ -77,7 +77,7 @@ def _request(url: str, method: str = "GET", data: dict | list | None = None, tok
 
 class TestGatewayAuth:
     def test_no_token_returns_401(self, gateway: str) -> None:
-        req = urllib.request.Request(f"{gateway}/api/health")
+        req = urllib.request.Request(f"{gateway}/api/status")
         # No auth header
         try:
             urllib.request.urlopen(req)
@@ -86,12 +86,20 @@ class TestGatewayAuth:
             assert e.code == 401
 
     def test_wrong_token_returns_401(self, gateway: str) -> None:
-        status, body = _request(f"{gateway}/api/health", token="wrong-token")
+        status, body = _request(f"{gateway}/api/status", token="wrong-token")
         assert status == 401
 
     def test_valid_token_returns_200(self, gateway: str) -> None:
         status, body = _request(f"{gateway}/api/health")
         assert status == 200
+        assert body["ok"] is True
+
+    def test_health_is_public(self, gateway: str) -> None:
+        """Health endpoint works without auth (liveness probe)."""
+        req = urllib.request.Request(f"{gateway}/api/health")
+        resp = urllib.request.urlopen(req)
+        assert resp.status == 200
+        body = json.loads(resp.read())
         assert body["ok"] is True
 
 

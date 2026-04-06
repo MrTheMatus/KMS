@@ -104,6 +104,7 @@ Gotowy **System Prompt**, temperatura, historia czatu i tekst odmowy „query mo
 | `verify_integrity` | Sprawdzenie spójności vault ↔ SQLite: brakujące pliki, zmienione hashe, pliki w inbox bez wpisu DB (`--json`) | — (read-only) |
 | `inbox_merge_advisor` | Głębsze sugestie vs warstwa kanoniczna: duplikat / konflikt / merge / prompt → **AnythingLLM API** (`--proposal-id`, `--json`, `--out`, opcjonalnie `--invoke-anythingllm`) | tak (bez audytu przy dry-run) |
 | `sync_to_anythingllm` | Upload + `update-embeddings` dla niesyncowanych artefaktów | tak |
+| `resync_embeddings` | Pełny re-embed vault po zmianie modelu embeddingów lub chunkingu (`--dry-run`, `--folders`, `--api-key`, `--batch-size`) | tak |
 | `convert_pdf_to_markdown` | PDF → MD (inbox lub `--input`) | tak |
 | `convert_conversation` | Surowa rozmowa/czat → source-note w `00_Inbox/` z `source_type: conversation` (`--input` **lub** `--batch-dir`, `--title` tylko przy pojedynczym pliku, opcjonalnie `--invoke-anythingllm`) | tak |
 | `list_batches` | Lista operacji batch w formacie JSON (`--active-only`, `--limit`) | — (read-only) |

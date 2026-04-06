@@ -10,7 +10,7 @@ export class KmsOnboardingWizard extends Modal {
     super(app);
     this.plugin = plugin;
     this.step = 0;
-    this.totalSteps = 5;
+    this.totalSteps = 6;
     this.checks = {};
     this.inboxCount = 0;
   }
@@ -26,7 +26,10 @@ export class KmsOnboardingWizard extends Modal {
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.empty();
 
-    const stepLabels = [t("wizStep1"), t("wizProfileTitle"), t("wizStep2"), t("wizStep3"), t("wizStep4")];
+    const stepLabels = [
+      t("wizStep1"), t("wizProfileTitle"), t("wizStep2"),
+      t("wizStep3"), t("wizStep4"), t("wizStepHelp"),
+    ];
     const indicator = contentEl.createDiv({ cls: "kms-wizard-steps" });
     for (let i = 0; i < stepLabels.length; i++) {
       const dot = indicator.createSpan({
@@ -44,6 +47,7 @@ export class KmsOnboardingWizard extends Modal {
     else if (this.step === 2) this._stepEnvironment(body);
     else if (this.step === 3) this._stepInbox(body);
     else if (this.step === 4) this._stepFirstRun(body);
+    else if (this.step === 5) this._stepHelp(body);
   }
 
   // ── Step 0: Welcome ──
@@ -160,8 +164,17 @@ export class KmsOnboardingWizard extends Modal {
 
     const inboxFolder = this.app.vault.getAbstractFileByPath("00_Inbox");
     let fileCount = 0;
-    if (inboxFolder && inboxFolder.children) {
-      fileCount = inboxFolder.children.filter((f) => !f.name.startsWith(".") && f.extension).length;
+    if (inboxFolder) {
+      const countRecursive = (folder) => {
+        if (!folder.children) return 0;
+        let n = 0;
+        for (const child of folder.children) {
+          if (child.children) n += countRecursive(child);
+          else if (!child.name.startsWith(".") && !child.name.startsWith("_") && child.extension) n++;
+        }
+        return n;
+      };
+      fileCount = countRecursive(inboxFolder);
     }
     this.inboxCount = fileCount;
 
@@ -178,8 +191,8 @@ export class KmsOnboardingWizard extends Modal {
 
     this._navButtons(body, {
       showBack: true,
-      nextLabel: fileCount > 0 ? t("runScan") : t("finish"),
-      nextAction: fileCount > 0 ? () => { this.step = 4; this._renderStep(); } : () => this._finish(),
+      nextLabel: fileCount > 0 ? t("runScan") : t("next"),
+      nextAction: fileCount > 0 ? () => { this.step = 4; this._renderStep(); } : () => { this.step = 5; this._renderStep(); },
     });
   }
 
@@ -234,18 +247,72 @@ export class KmsOnboardingWizard extends Modal {
 
     if (!failed) {
       footer.createEl("p", { cls: "kms-wizard-good", text: t("wizScanDone") });
-      const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
-      const openBtn = btnRow.createEl("button", { text: t("openReviewQueue"), cls: "mod-cta" });
-      openBtn.addEventListener("click", () => { this._finish(); this.plugin._openFile(REVIEW_QUEUE_FILENAME); });
-      const dashBtn = btnRow.createEl("button", { text: t("openDashboard") });
-      dashBtn.addEventListener("click", () => { this._finish(); this.plugin._openFile(DASHBOARD_FILENAME); });
     } else {
       const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
       const retryBtn = btnRow.createEl("button", { text: t("wizRetry"), cls: "mod-cta" });
       retryBtn.addEventListener("click", () => { this.step = 4; this._renderStep(); });
       const skipBtn = btnRow.createEl("button", { text: t("wizFinishAnyway") });
-      skipBtn.addEventListener("click", () => this._finish());
+      skipBtn.addEventListener("click", () => { this.step = 5; this._renderStep(); });
     }
+
+    if (!failed) {
+      this._navButtons(body, { showBack: false, nextLabel: t("next"), nextAction: () => { this.step = 5; this._renderStep(); } });
+    }
+  }
+
+  // ── Step 5: Help / How-To ──
+  _stepHelp(body) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("helpTitle") });
+    body.createEl("p", { text: t("helpIntro") });
+
+    // ── Quick Reference: collapsible sections ──
+    const sections = t("helpSections");
+    for (const section of sections) {
+      const details = body.createEl("details", { cls: "kms-help-section" });
+      const summary = details.createEl("summary", { cls: "kms-help-summary" });
+      summary.createSpan({ cls: "kms-help-icon", text: section.icon });
+      summary.createSpan({ text: section.title });
+
+      const content = details.createDiv({ cls: "kms-help-content" });
+      for (const item of section.items) {
+        const row = content.createDiv({ cls: "kms-help-item" });
+        row.createEl("strong", { text: item.label });
+        row.createEl("span", { text: ` — ${item.desc}` });
+      }
+    }
+
+    // ── Keyboard Shortcuts ──
+    const kbSection = body.createEl("details", { cls: "kms-help-section" });
+    const kbSummary = kbSection.createEl("summary", { cls: "kms-help-summary" });
+    kbSummary.createSpan({ cls: "kms-help-icon", text: "\u2328" });
+    kbSummary.createSpan({ text: t("helpKeyboardTitle") });
+    const kbContent = kbSection.createDiv({ cls: "kms-help-content" });
+    for (const kb of t("helpKeyboard")) {
+      const row = kbContent.createDiv({ cls: "kms-help-item" });
+      row.createEl("kbd", { text: kb.key, cls: "kms-help-kbd" });
+      row.createEl("span", { text: ` ${kb.desc}` });
+    }
+
+    // ── Vault Structure ──
+    const structSection = body.createEl("details", { cls: "kms-help-section" });
+    const structSummary = structSection.createEl("summary", { cls: "kms-help-summary" });
+    structSummary.createSpan({ cls: "kms-help-icon", text: "\ud83d\udcc1" });
+    structSummary.createSpan({ text: t("helpStructureTitle") });
+    const structContent = structSection.createDiv({ cls: "kms-help-content" });
+    structContent.createEl("pre", { cls: "kms-help-tree", text: t("helpStructureTree") });
+
+    // ── Links to docs ──
+    body.createEl("p", { cls: "kms-help-docs-hint", text: t("helpDocsHint") });
+
+    // ── Finish ──
+    const row = body.createDiv({ cls: "kms-wizard-actions" });
+    const openRQ = row.createEl("button", { text: t("openReviewQueue"), cls: "mod-cta" });
+    openRQ.addEventListener("click", () => { this._finish(); this.plugin._openFile(REVIEW_QUEUE_FILENAME); });
+    const openDash = row.createEl("button", { text: t("openDashboard") });
+    openDash.addEventListener("click", () => { this._finish(); this.plugin._openFile(DASHBOARD_FILENAME); });
+    const finishBtn = row.createEl("button", { text: t("finish") });
+    finishBtn.addEventListener("click", () => this._finish());
   }
 
   // ── Helpers ──
@@ -278,6 +345,68 @@ export class KmsOnboardingWizard extends Modal {
     this.close();
     this.plugin._reloadKmsViews();
     this.plugin._refreshPanel();
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
+
+// ── Standalone Help Modal (re-accessible from command palette) ──
+
+export class KmsHelpModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    contentEl.addClass("kms-wizard-modal");
+
+    contentEl.createEl("h2", { text: t("helpTitle") });
+    contentEl.createEl("p", { text: t("helpIntro") });
+
+    // ── Quick Reference ──
+    const sections = t("helpSections");
+    for (const section of sections) {
+      const details = contentEl.createEl("details", { cls: "kms-help-section" });
+      const summary = details.createEl("summary", { cls: "kms-help-summary" });
+      summary.createSpan({ cls: "kms-help-icon", text: section.icon });
+      summary.createSpan({ text: section.title });
+
+      const content = details.createDiv({ cls: "kms-help-content" });
+      for (const item of section.items) {
+        const row = content.createDiv({ cls: "kms-help-item" });
+        row.createEl("strong", { text: item.label });
+        row.createEl("span", { text: ` — ${item.desc}` });
+      }
+    }
+
+    // ── Keyboard Shortcuts ──
+    const kbSection = contentEl.createEl("details", { cls: "kms-help-section" });
+    const kbSummary = kbSection.createEl("summary", { cls: "kms-help-summary" });
+    kbSummary.createSpan({ cls: "kms-help-icon", text: "\u2328" });
+    kbSummary.createSpan({ text: t("helpKeyboardTitle") });
+    const kbContent = kbSection.createDiv({ cls: "kms-help-content" });
+    for (const kb of t("helpKeyboard")) {
+      const row = kbContent.createDiv({ cls: "kms-help-item" });
+      row.createEl("kbd", { text: kb.key, cls: "kms-help-kbd" });
+      row.createEl("span", { text: ` ${kb.desc}` });
+    }
+
+    // ── Vault Structure ──
+    const structSection = contentEl.createEl("details", { cls: "kms-help-section" });
+    const structSummary = structSection.createEl("summary", { cls: "kms-help-summary" });
+    structSummary.createSpan({ cls: "kms-help-icon", text: "\ud83d\udcc1" });
+    structSummary.createSpan({ text: t("helpStructureTitle") });
+    const structContent = structSection.createDiv({ cls: "kms-help-content" });
+    structContent.createEl("pre", { cls: "kms-help-tree", text: t("helpStructureTree") });
+
+    contentEl.createEl("p", { cls: "kms-help-docs-hint", text: t("helpDocsHint") });
+
+    const closeRow = contentEl.createDiv({ cls: "kms-wizard-actions" });
+    const closeBtn = closeRow.createEl("button", { text: t("close"), cls: "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
   }
 
   onClose() { this.contentEl.empty(); }

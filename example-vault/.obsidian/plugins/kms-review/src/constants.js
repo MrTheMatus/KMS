@@ -10,6 +10,8 @@ export const DEFAULT_SETTINGS = {
   language: "pl",
   profile: "core",
   anythingllmEnabled: false,
+  anythingllmUrl: "http://localhost:3001",
   anythingllmSlug: "my-workspace",
+  anythingllmApiKey: "",
   onboardingDone: false,
 };

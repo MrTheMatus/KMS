@@ -1,7 +1,8 @@
 import { ItemView, setIcon } from "obsidian";
 import { PANEL_VIEW_TYPE, REVIEW_QUEUE_FILENAME, DASHBOARD_FILENAME } from "./constants";
 import { _t } from "./i18n";
-import { KmsSearchModal, KmsRevertModal, KmsBatchRevertModal } from "./modals";
+import { KmsSearchModal, KmsRevertModal, KmsBatchRevertModal, KmsAskLlmModal, KmsNoticeModal } from "./modals";
+import { KmsHelpModal } from "./wizard";
 
 export class KmsPanelView extends ItemView {
   constructor(leaf, plugin) {
@@ -59,11 +60,30 @@ export class KmsPanelView extends ItemView {
     this._actionBtn(navSection, t("btnReviewQueue"), "file-text", "", () => this.plugin._openFile(REVIEW_QUEUE_FILENAME));
     this._actionBtn(navSection, t("btnDashboard"), "bar-chart-2", "", () => this.plugin._openFile(DASHBOARD_FILENAME));
     this._actionBtn(navSection, t("btnSearch"), "search", "", () => new KmsSearchModal(this.plugin.app, this.plugin).open());
+    if (this.plugin.settings.anythingllmEnabled) {
+      this._actionBtn(navSection, t("btnAskLlm"), "message-circle", t("tooltipAskLlm"), () => {
+        if (!this.plugin.settings.anythingllmApiKey) {
+          new KmsNoticeModal(this.plugin.app, this.plugin, "AnythingLLM", t("askNoApiKey"), {
+            actions: [{ label: t("wizOpenSettings"), cls: "mod-cta", callback: () => {
+              this.plugin.app.setting.open();
+              this.plugin.app.setting.openTabById("kms-review");
+            }}],
+          }).open();
+          return;
+        }
+        new KmsAskLlmModal(this.plugin.app, this.plugin).open();
+      });
+    }
 
     // Advanced
     const advSection = section(t("secAdvanced"));
     this._actionBtn(advSection, t("btnRevertProposal"), "undo", t("tooltipRevert"), () => new KmsRevertModal(this.plugin.app, this.plugin).open());
     this._actionBtn(advSection, t("btnRevertBatch"), "rotate-ccw", t("tooltipBatchRevert"), () => new KmsBatchRevertModal(this.plugin.app, this.plugin).open());
+    this._actionBtn(advSection, t("btnSettings"), "settings", "", () => {
+      this.plugin.app.setting.open();
+      this.plugin.app.setting.openTabById("kms-review");
+    });
+    this._actionBtn(advSection, t("btnHelp"), "help-circle", "", () => new KmsHelpModal(this.plugin.app, this.plugin).open());
   }
 
   _actionBtn(parent, label, icon, tooltip, onClick) {

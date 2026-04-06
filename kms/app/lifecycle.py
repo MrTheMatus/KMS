@@ -72,7 +72,8 @@ def recompute_lifecycle(conn: Any, proposal_id: int | None = None) -> int:
 
     rows = fetch_all_dicts(
         conn,
-        f"""SELECT p.id AS proposal_id, p.item_id,
+        f"""SELECT p.id AS proposal_id, p.lifecycle_status,
+                   p.item_id,
                    COALESCE(d.decision, 'pending') AS decision,
                    i.status AS item_status,
                    a.id AS artifact_id,
@@ -97,10 +98,13 @@ def recompute_lifecycle(conn: Any, proposal_id: int | None = None) -> int:
                 "workspace_name": row["workspace_name"],
             }
         )
+        if row["lifecycle_status"] == status:
+            continue
         conn.execute(
             "UPDATE proposals SET lifecycle_status = ? WHERE id = ?",
             (status, row["proposal_id"]),
         )
         n += 1
-    conn.commit()
+    if n:
+        conn.commit()
     return n

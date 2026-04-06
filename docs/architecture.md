@@ -64,7 +64,7 @@ Na bieżącym etapie **świadomie nie budujemy**:
 | **Review UI** | `00_Admin/review-queue.md` | Źródło decyzji (format YAML w markdown) |
 | **Obsidian plugin** | `kms-review` | Interaktywny interfejs: review, search, dashboard, revert, bulk ops — wywołuje skrypty Python |
 | **Execution host** | Mac mini (docelowo) | Mutacje plików, apply, backup |
-| **Future** | Thin client + gateway | Zdalne approve/reject/postpone przez VPN (później) |
+| **Gateway** | Thin client + gateway | Zdalne approve/reject/postpone przez VPN (zrealizowane — patrz `docs/gateway.md`) |
 
 ---
 
@@ -124,7 +124,7 @@ Tabele: `items`, `proposals`, `decisions`, `artifacts`, `executions` (snapshot p
 flowchart LR
   user[User]
   thinClient[iPhone_or_thin_MacBook]
-  gateway[Decision_gateway_future]
+  gateway[Decision_gateway]
   host[Mac_mini_host]
   vault[Obsidian_vault]
   sqlite[SQLite_control_plane]
@@ -142,7 +142,7 @@ flowchart LR
   anyllm --> vault
   anyllm --> ollama
   host --> backup
-  thinClient -.->|"later_VPN"| gateway
+  thinClient -.->|"VPN"| gateway
   gateway -.-> sqlite
 ```
 
@@ -292,7 +292,7 @@ Dla **backupu**: vault + SQLite; non-interactive; log wyniku lub błędu.
 
 **Kolejność:** manualny pipeline → control plane → stabilizacja → packaging → gateway → plugin → polish → continuity layer.
 
-**Stan na 2026-03-30:** Etapy 0–7 zrealizowane. Etap 8 (product polish) w trakcie. Etap 9 (continuity beyond templates) świadomie odłożony.
+**Stan na 2026-04-06:** Etapy 0–7 zrealizowane. Etap 8 (product polish) w trakcie. Etap 9 (continuity beyond templates) świadomie odłożony.
 
 ---
 

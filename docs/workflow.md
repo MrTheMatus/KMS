@@ -16,7 +16,7 @@ Pełna lista poleceń, flag (`--config`, `--dry-run`, `-v`), konfiguracja Anythi
 
 | Komponent | Instalacja | Cel |
 |-----------|------------|-----|
-| Python 3.14 + venv | `.venv/bin/python` | Skrypty KMS |
+| Python 3.11+ + venv | `.venv/bin/python` | Skrypty KMS |
 | Ollama | `brew install ollama && brew services start ollama` | Lokalny LLM |
 | Qwen 2.5:14b | `ollama pull qwen2.5:14b` (9 GB) | Streszczenia AI (polski) |
 | Obsidian + plugin kms-review | Vault: `example-vault/`, plugin w `.obsidian/plugins/kms-review/` | Interaktywny przegląd |
@@ -262,16 +262,17 @@ awaiting_decision → approved → applied → indexed
 
 ## Kreator konfiguracji (Onboarding Wizard)
 
-Przy pierwszym uruchomieniu pluginu (lub `KMS: Run setup wizard`) otwiera się 5-krokowy kreator:
+Przy pierwszym uruchomieniu pluginu (lub `KMS: Run setup wizard`) otwiera się 6-krokowy kreator:
 
 1. **Witaj** — opis systemu i kluczowych obietnic
 2. **Profil** — wybór trybu pracy:
-   - **Core** — podstawowy pipeline bez AI (skan → review → apply)
-   - **AI — lokalnie** — streszczenia i klasyfikacja przez Ollama
-   - **AI — chmura** — streszczenia przez API chmurowe (OpenAI, Anthropic)
+   - **Core** — podstawowy pipeline bez AI (skan → review → apply; flaga `--ai-summary` nie jest przekazywana)
+   - **AI — lokalnie** — streszczenia i klasyfikacja przez Ollama (dodaje `--ai-summary`)
+   - **AI — chmura** — streszczenia przez API chmurowe (OpenAI, Anthropic; dodaje `--ai-summary`)
 3. **Środowisko** — automatyczna weryfikacja: Python, `config.yaml`, integralność bazy
-4. **Inbox** — sprawdzenie plików w `00_Inbox/`, podpowiedzi co wrzucić
-5. **Pierwszy skan** — uruchamia `scan_inbox` → `make_review_queue` → `generate_dashboard` z postępem
+4. **Inbox** — sprawdzenie plików w `00_Inbox/` (rekurencyjnie), podpowiedzi co wrzucić
+5. **Pomoc** — skrócona instrukcja: workflow, komendy, skróty klawiszowe, struktura vault
+6. **Pierwszy skan** — uruchamia `scan_inbox` → `make_review_queue` → `generate_dashboard` z postępem
 
 Kreator ustawia flagę `onboardingDone` — nie pojawi się ponownie, chyba że uruchomisz go ręcznie.
 

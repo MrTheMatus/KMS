@@ -242,11 +242,13 @@ def _retriage_all(
             "UPDATE proposals SET suggested_metadata_json = ? WHERE id = ?",
             (json.dumps(meta, ensure_ascii=False), row["id"]),
         )
+        # Commit each row so we never hold a write transaction across LLM calls
+        # (default sqlite isolation would block other processes until batch commit).
+        conn.commit()
         updated += 1
 
         if (idx + 1) % 20 == 0:
             _LOG.info("Retriage progress: %d/%d", idx + 1, len(rows))
-            conn.commit()
 
     conn.commit()
     _LOG.info("Retriage complete: %d/%d proposals updated", updated, len(rows))

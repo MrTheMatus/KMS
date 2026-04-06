@@ -1,5 +1,58 @@
-import { Modal, Notice } from "obsidian";
+import { Modal, Notice, requestUrl, MarkdownRenderer } from "obsidian";
 import { _t } from "./i18n";
+
+// ── Notice Modal (replaces toasts for errors & important messages) ──
+
+export class KmsNoticeModal extends Modal {
+  /**
+   * @param {App} app
+   * @param {Plugin} plugin
+   * @param {string} title - Modal heading
+   * @param {string} message - Main message text
+   * @param {Object} [opts] - Optional: { detail, actions: [{label, cls, callback}] }
+   */
+  constructor(app, plugin, title, message, opts = {}) {
+    super(app);
+    this.plugin = plugin;
+    this._title = title;
+    this._message = message;
+    this._detail = opts.detail || "";
+    this._actions = opts.actions || [];
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    contentEl.addClass("kms-notice-modal");
+    contentEl.createEl("h3", { text: this._title });
+    contentEl.createEl("p", { cls: "kms-notice-message", text: this._message });
+
+    if (this._detail) {
+      const detailEl = contentEl.createEl("pre", { cls: "kms-notice-detail", text: this._detail });
+      const copyBtn = contentEl.createEl("button", { cls: "kms-notice-copy-btn", text: t("copyError") });
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(this._detail);
+        copyBtn.textContent = t("copied");
+        setTimeout(() => { copyBtn.textContent = t("copyError"); }, 1500);
+      });
+    }
+
+    const btnRow = contentEl.createDiv({ cls: "kms-notice-actions" });
+
+    for (const action of this._actions) {
+      const btn = btnRow.createEl("button", { text: action.label, cls: action.cls || "" });
+      btn.addEventListener("click", () => {
+        this.close();
+        if (action.callback) action.callback();
+      });
+    }
+
+    const closeBtn = btnRow.createEl("button", { text: t("close"), cls: this._actions.length ? "" : "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
 
 // ── Search Modal ──
 
@@ -193,7 +246,10 @@ export class KmsDetailModal extends Modal {
             );
             if (ok) { new Notice(t("revertDone", this.proposalId)); this.close(); }
             else { revertBtn.textContent = t("revertFailed"); revertBtn.disabled = false; }
-          } catch (err) { revertBtn.textContent = t("revertFailed"); new Notice(`${t("revertFailed")}: ${err.message}`, 10000); revertBtn.disabled = false; }
+          } catch (err) {
+            revertBtn.textContent = t("revertFailed"); revertBtn.disabled = false;
+            new KmsNoticeModal(this.app, this.plugin, t("revertFailed"), t("revertFailed"), { detail: err.message }).open();
+          }
         });
       }
     } catch (err) {
@@ -238,7 +294,7 @@ export class KmsRevertModal extends Modal {
 
     previewBtn.addEventListener("click", async () => {
       const pid = parseInt(input.value, 10);
-      if (!pid) { new Notice(t("revertInvalidId")); return; }
+      if (!pid) { previewEl.empty(); previewEl.createEl("p", { cls: "kms-search-error", text: t("revertInvalidId") }); return; }
       previewEl.empty();
       previewEl.createEl("p", { cls: "kms-search-loading", text: t("revertDryRun") });
       const python = this.plugin._getPython();
@@ -272,7 +328,10 @@ export class KmsRevertModal extends Modal {
         );
         if (ok) { new Notice(t("revertDone", pid)); this.close(); }
         else { revertBtn.textContent = t("revertFailed"); revertBtn.disabled = false; }
-      } catch (err) { revertBtn.textContent = t("revertFailed"); new Notice(`${t("revertFailed")}: ${err.message}`, 10000); revertBtn.disabled = false; }
+      } catch (err) {
+        revertBtn.textContent = t("revertFailed"); revertBtn.disabled = false;
+        new KmsNoticeModal(this.app, this.plugin, t("revertFailed"), t("revertFailed"), { detail: err.message }).open();
+      }
     });
     setTimeout(() => input.focus(), 50);
   }
@@ -339,8 +398,8 @@ export class KmsBatchRevertModal extends Modal {
             else { revertBtn.textContent = t("revertFailed"); revertBtn.disabled = false; }
           } catch (err) {
             revertBtn.textContent = t("revertFailed");
-            new Notice(`${t("batchRevertFailed")} ${err.message}`, 10000);
             revertBtn.disabled = false;
+            new KmsNoticeModal(this.app, this.plugin, t("batchRevertFailed"), t("batchRevertFailed"), { detail: err.message }).open();
           }
         });
       }
@@ -382,6 +441,298 @@ export class KmsConfirmModal extends Modal {
     this.contentEl.empty();
     if (!this._resolved && this._callback) this._callback(false);
   }
+}
+
+// ── Ask LLM Modal (hybrid: AnythingLLM + vault keyword search) ──
+
+export class KmsAskLlmModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this._vaultResults = [];
+    this._lastQuestion = "";
+  }
+
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    modalEl.addClass("kms-ask-modal");
+    contentEl.createEl("h3", { text: t("askTitle") });
+    contentEl.createEl("p", { cls: "kms-ask-desc", text: t("askDesc") });
+
+    const input = contentEl.createEl("textarea", {
+      cls: "kms-ask-input",
+      attr: { rows: "3", placeholder: t("askPlaceholder") },
+    });
+
+    const btnRow = contentEl.createDiv({ cls: "kms-ask-actions" });
+    const askBtn = btnRow.createEl("button", { text: t("askSend"), cls: "mod-cta" });
+
+    const responseEl = contentEl.createDiv({ cls: "kms-ask-response" });
+    const vaultEl = contentEl.createDiv({ cls: "kms-ask-vault" });
+
+    // Chat history footer for power users
+    const settings = this.plugin.settings;
+    const baseHost = (settings.anythingllmUrl || "http://localhost:3001").replace(/\/+$/, "");
+    const chatsUrl = `${baseHost}/settings/workspace-chats`;
+    const footer = contentEl.createDiv({ cls: "kms-ask-footer" });
+    const footerLink = footer.createEl("a", {
+      cls: "kms-ask-history-link",
+      text: t("askHistoryBtn"),
+      attr: { href: chatsUrl },
+    });
+    footerLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.open(chatsUrl, "_blank");
+    });
+    footer.createSpan({ cls: "kms-ask-footer-hint", text: ` — ${t("askHistoryHint", chatsUrl)}` });
+
+    const doAsk = async (withContext = false) => {
+      const question = input.value.trim();
+      if (!question) return;
+      this._lastQuestion = question;
+      askBtn.disabled = true;
+      askBtn.textContent = t("askLoading");
+      responseEl.empty();
+      responseEl.createEl("p", { cls: "kms-search-loading", text: t("askLoading") });
+      if (!withContext) vaultEl.empty();
+
+      try {
+        const s = this.plugin.settings;
+        const slug = s.anythingllmSlug || "my-workspace";
+        const baseUrl = (s.anythingllmUrl || "http://localhost:3001").replace(/\/+$/, "");
+        const apiKey = s.anythingllmApiKey || "";
+
+        if (!apiKey) {
+          responseEl.empty();
+          this.close();
+          new KmsNoticeModal(this.app, this.plugin, "AnythingLLM", t("askNoApiKey"), {
+            actions: [{ label: t("wizOpenSettings"), cls: "mod-cta", callback: () => {
+              this.app.setting.open();
+              this.app.setting.openTabById("kms-review");
+            }}],
+          }).open();
+          askBtn.disabled = false;
+          askBtn.textContent = t("askSend");
+          return;
+        }
+
+        // ── Build message (optionally enriched with vault context) ──
+        let message = question;
+        let mode = "query"; // embedding-based RAG
+        if (withContext) {
+          const selected = this._getSelectedVaultFiles(vaultEl);
+          if (selected.length > 0) {
+            const ctx = selected.map(r =>
+              `--- ${r.path} ---\n${r.content.substring(0, 1500)}`
+            ).join("\n\n");
+            message = `Kontekst z moich notatek:\n\n${ctx}\n\n---\nPytanie: ${question}`;
+            mode = "chat"; // we provide context, skip embedding retrieval
+          }
+        }
+
+        // ── Call AnythingLLM ──
+        const resp = await requestUrl({
+          url: `${baseUrl}/api/v1/workspace/${slug}/chat`,
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message, mode, attachments: [] }),
+        });
+
+        const data = resp.json;
+        responseEl.empty();
+
+        // ── Render answer as Markdown ──
+        const text = data.textResponse || data.error || JSON.stringify(data);
+        const answer = responseEl.createDiv({ cls: "kms-ask-answer" });
+        answer.createEl("h4", { text: t("askAnswer") });
+        if (withContext) {
+          answer.createEl("span", { cls: "kms-ask-context-badge", text: t("askContextBadge") });
+        }
+        const answerBody = answer.createDiv({ cls: "kms-ask-answer-body" });
+        try {
+          await MarkdownRenderer.render(this.app, text, answerBody, "", this);
+        } catch (_) {
+          // Fallback: plain paragraphs
+          for (const para of text.split("\n\n")) {
+            if (para.trim()) answerBody.createEl("p", { text: para.trim() });
+          }
+        }
+
+        // ── Show AnythingLLM sources ──
+        const sources = data.sources || [];
+        if (sources.length > 0) {
+          const srcEl = responseEl.createDiv({ cls: "kms-ask-sources" });
+          srcEl.createEl("h4", { text: t("askSources") });
+          for (const src of sources) {
+            const title = src.title || src.name || src.location || "—";
+            srcEl.createEl("p", { cls: "kms-ask-source-item", text: `• ${title}` });
+          }
+        }
+
+        // ── Vault keyword search (only on first ask, not re-ask) ──
+        if (!withContext) {
+          this._vaultResults = await this._searchVault(question);
+          this._renderVaultResults(vaultEl, t, () => doAsk(true));
+        }
+      } catch (err) {
+        responseEl.empty();
+        this.close();
+        new KmsNoticeModal(this.app, this.plugin, t("askErrorTitle"), t("askError", err.message), {
+          detail: err.message,
+          actions: [{ label: t("wizOpenSettings"), callback: () => {
+            this.app.setting.open();
+            this.app.setting.openTabById("kms-review");
+          }}],
+        }).open();
+      }
+
+      askBtn.disabled = false;
+      askBtn.textContent = t("askSend");
+    };
+
+    askBtn.addEventListener("click", () => doAsk(false));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) doAsk(false);
+    });
+    setTimeout(() => input.focus(), 50);
+  }
+
+  // ── Render vault keyword-search results with checkboxes ──
+  _renderVaultResults(container, t, reaskCallback) {
+    container.empty();
+    if (this._vaultResults.length === 0) {
+      container.createEl("p", { cls: "kms-ask-vault-empty", text: t("askVaultEmpty") });
+      return;
+    }
+
+    const header = container.createDiv({ cls: "kms-ask-vault-header" });
+    header.createEl("h4", { text: t("askVaultTitle") });
+    header.createEl("p", { cls: "kms-ask-vault-desc", text: t("askVaultDesc") });
+
+    const list = container.createDiv({ cls: "kms-ask-vault-list" });
+    for (const r of this._vaultResults) {
+      const item = list.createDiv({ cls: "kms-ask-vault-item" });
+      const row = item.createEl("label", { cls: "kms-ask-vault-label" });
+      row.createEl("input", { type: "checkbox", attr: { "data-path": r.path } });
+      row.createSpan({ cls: "kms-ask-vault-path", text: r.path });
+      row.createSpan({ cls: "kms-ask-vault-score", text: `${r.matched}/${r.total} terms · ${r.score} pts` });
+      if (r.snippet) {
+        item.createEl("p", { cls: "kms-ask-vault-snippet", text: r.snippet });
+      }
+    }
+
+    const reaskBtn = container.createEl("button", {
+      cls: "kms-ask-vault-reask",
+      text: t("askReaskWithContext"),
+    });
+    reaskBtn.addEventListener("click", () => reaskCallback());
+  }
+
+  // ── Keyword search across vault markdown files ──
+  // Improved: stop words, prefix stemming, coverage-weighted scoring
+  async _searchVault(query) {
+    const files = this.app.vault.getMarkdownFiles();
+
+    // 1) Strip punctuation, lowercase, split
+    const raw = query.toLowerCase().replace(/[^a-ząćęłńóśźż0-9\s]/gi, "").split(/\s+/);
+
+    // 2) Stop words (PL + EN) — filter out noise
+    const STOP = new Set([
+      "i","w","z","na","do","to","co","jak","czy","że","nie","się","jest",
+      "od","za","po","ale","lub","te","ten","ta","tym","tego","tej","o","a",
+      "ze","dla","przy","przez","bez","nad","pod","czego","czym","jaki",
+      "jaka","jakie","który","która","które","być","był","była","było",
+      "były","będzie","mieć","miał","miała","dotyczyła","dotyczyło",
+      "the","a","an","is","are","was","were","be","been","have","has",
+      "had","do","does","did","will","would","could","should","may",
+      "can","of","in","to","for","with","on","at","from","by","about",
+      "as","and","but","or","not","what","which","who","this","that",
+      "how","where","when","why","it","its","my","your","his","her",
+    ]);
+    const terms = raw.filter(w => w.length >= 2 && !STOP.has(w));
+    if (terms.length === 0) return [];
+
+    // 3) Generate prefix stems for Polish declension tolerance
+    //    "simona" → ["simona","simon"], "johnem" → ["johnem","johne","john"]
+    const termSets = terms.map(t => {
+      const stems = [t];
+      if (t.length > 3) stems.push(t.slice(0, -1));
+      if (t.length > 4) stems.push(t.slice(0, -2));
+      return { original: t, stems };
+    });
+
+    const searchFolders = /^(10_Sources|20_Source-Notes|30_Permanent-Notes)\//;
+    const scored = [];
+
+    for (const file of files) {
+      if (!searchFolders.test(file.path)) continue;
+      const content = await this.app.vault.cachedRead(file);
+      const lower = content.toLowerCase();
+      const nameLower = file.basename.toLowerCase().replace(/[-_]/g, " ");
+
+      let totalScore = 0;
+      let termsMatched = 0;
+      let bestMatchStem = null;
+
+      for (const { stems } of termSets) {
+        let best = 0;
+        for (const stem of stems) {
+          let count = 0;
+          let idx = 0;
+          while ((idx = lower.indexOf(stem, idx)) !== -1) { count++; idx += stem.length; }
+          if (nameLower.includes(stem)) count += 5; // filename match bonus
+          best = Math.max(best, count);
+        }
+        if (best > 0) {
+          termsMatched++;
+          totalScore += Math.min(best, 10); // cap per-term to prevent single word domination
+          if (!bestMatchStem) {
+            bestMatchStem = stems.find(s => lower.includes(s));
+          }
+        }
+      }
+
+      if (totalScore > 0 && termsMatched > 0) {
+        // 4) Coverage bonus: strongly prefer files matching MORE distinct query terms
+        //    coverage=1.0 → ×2.5, coverage=0.5 → ×1.5, coverage=0.25 → ×1.0
+        const coverage = termsMatched / termSets.length;
+        const finalScore = Math.round(totalScore * (0.5 + coverage * 2));
+
+        const stem = bestMatchStem || terms[0];
+        const matchIdx = Math.max(0, lower.indexOf(stem));
+        const start = Math.max(0, matchIdx - 60);
+        const end = Math.min(content.length, matchIdx + 250);
+        const snippet =
+          (start > 0 ? "…" : "") +
+          content.substring(start, end).replace(/\n+/g, " ").trim() +
+          (end < content.length ? "…" : "");
+        scored.push({
+          path: file.path,
+          score: finalScore,
+          matched: termsMatched,
+          total: termSets.length,
+          snippet,
+          content,
+        });
+      }
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 8);
+  }
+
+  // ── Get checked vault files from the UI ──
+  _getSelectedVaultFiles(container) {
+    const checked = container.querySelectorAll("input[type=checkbox]:checked");
+    const paths = new Set([...checked].map(cb => cb.getAttribute("data-path")));
+    return this._vaultResults.filter(r => paths.has(r.path));
+  }
+
+  onClose() { this.contentEl.empty(); }
 }
 
 // ── Progress Modal ──

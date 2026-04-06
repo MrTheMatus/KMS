@@ -38,12 +38,15 @@ Without Obsidian: edit `example-vault/00_Admin/review-queue.md` manually → `py
 
 Pre-installed in `example-vault/.obsidian/plugins/kms-review/`. Features:
 
-- **5-step onboarding wizard** with profile selection (core / AI-local / AI-cloud)
-- **Sidebar control panel** — pipeline actions, stats, domain breakdown
-- **Interactive review** — approve/reject/postpone with one click
+- **6-step onboarding wizard** with profile selection (core / AI-local / AI-cloud) and help
+- **Sidebar control panel** — pipeline actions, stats, domain breakdown, settings, help
+- **Interactive review** — approve/reject/postpone with one click, next-step guidance
+- **Ask knowledge base** — hybrid search: AnythingLLM RAG + vault keyword search with context injection
+- **Contradiction detection** — LLM flags when new notes contradict existing knowledge
 - **Search & detail modals** — find proposals by keyword, view full metadata
 - **Bulk operations** — approve/reject all pending at once
 - **Batch revert** — undo entire operations with one click
+- **Error modals** — copyable error details with action buttons (replaces transient toasts)
 - **i18n** — full Polish and English interface
 - **Dark mode** — uses Obsidian theme variables
 
@@ -64,6 +67,7 @@ To install in another vault: copy `main.js`, `manifest.json`, `styles.css` to yo
 | `status` | Show proposal lifecycle status |
 | `daily_report` | Generate daily summary |
 | `sync_to_anythingllm` | Push artifacts to AnythingLLM for RAG |
+| `resync_embeddings` | Full vault re-embed after model/chunking change |
 
 Full reference with all flags: [docs/cli.md](docs/cli.md)
 

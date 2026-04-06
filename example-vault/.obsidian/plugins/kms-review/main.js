@@ -36,7 +36,9 @@ var DEFAULT_SETTINGS = {
   language: "pl",
   profile: "core",
   anythingllmEnabled: false,
+  anythingllmUrl: "http://localhost:3001",
   anythingllmSlug: "my-workspace",
+  anythingllmApiKey: "",
   onboardingDone: false
 };
 
@@ -87,6 +89,52 @@ var I18N = {
     profileAiLocalDesc: "Streszczenia i klasyfikacja przez lokalne modele (Ollama).",
     profileAiCloud: "AI \u2014 chmura",
     profileAiCloudDesc: "Streszczenia i klasyfikacja przez API chmurowe (OpenAI, Anthropic).",
+    wizStepHelp: "Pomoc",
+    // Help / How-To
+    helpTitle: "Jak korzysta\u0107 z KMS",
+    helpIntro: "Skr\xF3cona instrukcja obs\u0142ugi \u2014 kliknij sekcj\u0119, aby j\u0105 rozwin\u0105\u0107.",
+    helpSections: [
+      {
+        icon: "\u{1F680}",
+        title: "Codzienny workflow",
+        items: [
+          { label: "1. Wrzu\u0107 pliki do 00_Inbox/", desc: "PDF, Markdown, eksporty czat\xF3w" },
+          { label: "2. Ctrl+P \u2192 \u201EKMS: Refresh review queue\u201D", desc: "Skanuje inbox, tworzy propozycje, generuje dashboard" },
+          { label: "3. Otw\xF3rz review-queue.md", desc: "Kliknij Zatwierd\u017A / Odrzu\u0107 / Od\u0142\xF3\u017C przy ka\u017Cdej propozycji" },
+          { label: "4. Ctrl+P \u2192 \u201EKMS: Apply decisions\u201D", desc: "Przenosi zatwierdzone pliki do docelowych folder\xF3w" }
+        ]
+      },
+      {
+        icon: "\u{1F50D}",
+        title: "Przydatne komendy",
+        items: [
+          { label: "Search proposals", desc: "Szukaj propozycji po tek\u015Bcie, domenie, temacie" },
+          { label: "Retriage all", desc: "Re-klasyfikacja domen/temat\xF3w przez LLM" },
+          { label: "Revert proposal", desc: "Cofnij pojedyncz\u0105 zaaplikowan\u0105 propozycj\u0119" },
+          { label: "Revert batch", desc: "Cofnij ca\u0142\u0105 operacj\u0119 zbiorczego zatwierdzenia" },
+          { label: "Ask knowledge base", desc: "Zapytaj AnythingLLM o informacje z bazy wiedzy" },
+          { label: "Run setup wizard", desc: "Uruchom ponownie ten kreator" }
+        ]
+      },
+      {
+        icon: "\u2699\uFE0F",
+        title: "Profile",
+        items: [
+          { label: "Core", desc: "Podstawowy pipeline bez AI" },
+          { label: "AI \u2014 lokalnie", desc: "Streszczenia i klasyfikacja przez Ollama" },
+          { label: "AI \u2014 chmura", desc: "Streszczenia i klasyfikacja przez OpenAI / Anthropic" }
+        ]
+      }
+    ],
+    helpKeyboardTitle: "Skr\xF3ty klawiszowe",
+    helpKeyboard: [
+      { key: "Ctrl+P", desc: "Paleta komend \u2014 wpisz \u201EKMS\u201D aby zobaczy\u0107 wszystkie komendy" },
+      { key: "Ctrl+Shift+R", desc: "Mo\u017Cesz przypisac do Refresh review queue" },
+      { key: "Ctrl+Shift+A", desc: "Mo\u017Cesz przypisac do Apply decisions" }
+    ],
+    helpStructureTitle: "Struktura vaultu",
+    helpStructureTree: "00_Admin/\n  review-queue.md    \u2190 propozycje do przegl\u0105du\n  dashboard.md       \u2190 statystyki\n00_Inbox/              \u2190 WRZUCAJ PLIKI TUTAJ\n10_Sources/\n  web/               \u2190 zatwierdzone notatki web\n  pdf/               \u2190 zatwierdzone PDF-y\n20_Source-Notes/       \u2190 wygenerowane notatki \u017Ar\xF3d\u0142owe\n30_Permanent-Notes/    \u2190 Twoja kanonowa baza wiedzy\n80_Archive/            \u2190 odrzucone pliki",
+    helpDocsHint: "Pe\u0142na dokumentacja: docs/USAGE.md, docs/INSTALL.md, docs/gateway.md",
     // Nav
     back: "\u2190 Wstecz",
     next: "Dalej \u2192",
@@ -104,6 +152,7 @@ var I18N = {
     refreshingQueue: "Od\u015Bwie\u017Canie kolejki",
     retriaging: "Re-klasyfikacja propozycji (LLM)",
     // Bulk
+    bulkTitle: "Operacja zbiorcza",
     confirmTitle: "Potwierdzenie",
     confirmYes: "Tak, wykonaj",
     confirmNo: "Anuluj",
@@ -111,6 +160,7 @@ var I18N = {
     bulkRejectQ: (n) => `Czy na pewno chcesz odrzuci\u0107 ${n} propozycji?`,
     bulkDone: (n, d) => `${n} propozycji ustawionych na ${d}.`,
     noPending: "Brak propozycji pending do zmiany.",
+    applyHint: "Uruchom \u201EZastosuj decyzje\u201D aby przenie\u015B\u0107 pliki.",
     // Progress
     pipelineDone: "Gotowe!",
     pipelineError: "B\u0142\u0105d pipeline:",
@@ -133,6 +183,10 @@ var I18N = {
     btnSearch: "Szukaj propozycji",
     btnRevertProposal: "Cofnij propozycj\u0119",
     btnRevertBatch: "Cofnij batch",
+    btnSettings: "Ustawienia",
+    btnHelp: "Pomoc",
+    btnAskLlm: "Zapytaj baz\u0119 wiedzy",
+    tooltipAskLlm: "Zapytaj AnythingLLM o Twoje notatki",
     loadingStats: "\u0141adowanie statystyk...",
     statsError: "B\u0142\u0105d statystyk:",
     topDomains: "Top domeny",
@@ -186,8 +240,12 @@ var I18N = {
     settingAnythingLLMHeader: "AnythingLLM",
     settingAnythingLLM: "W\u0142\u0105cz AnythingLLM",
     settingAnythingLLMDesc: "Integracja z AnythingLLM dla retrieval i Q&A",
+    settingAnythingLLMUrl: "URL AnythingLLM",
+    settingAnythingLLMUrlDesc: "Adres serwera AnythingLLM",
     settingSlug: "Workspace slug",
     settingSlugDesc: "Nazwa workspace w AnythingLLM",
+    settingApiKey: "API Key",
+    settingApiKeyDesc: "Klucz API AnythingLLM (znajdziesz w AnythingLLM \u2192 Settings \u2192 API Keys)",
     settingHelp: "Pomoc",
     settingHelpText: "Otw\xF3rz <code>docs/workflow.md</code> aby zobaczy\u0107 pe\u0142ny opis pracy z KMS.",
     // Stats
@@ -246,6 +304,28 @@ var I18N = {
     // Batch list
     batchProposalCount: (n) => `${n} propozycji`,
     batchCreatedLabel: (at) => `Utworzono: ${at}`,
+    // Ask LLM
+    askTitle: "Zapytaj baz\u0119 wiedzy",
+    askDesc: "Zadaj pytanie \u2014 AnythingLLM przeszuka Twoje notatki i odpowie na podstawie bazy wiedzy.",
+    askPlaceholder: "np. Jak dzia\u0142a move semantics w C++?",
+    askSend: "Zapytaj",
+    askLoading: "Szukam odpowiedzi...",
+    askAnswer: "Odpowied\u017A",
+    askSources: "\u0179r\xF3d\u0142a",
+    askErrorTitle: "B\u0142\u0105d AnythingLLM",
+    askError: (msg) => `B\u0142\u0105d AnythingLLM: ${msg}`,
+    askNoApiKey: "Brak klucza API. Ustaw API Key w ustawieniach pluginu (sekcja AnythingLLM).",
+    askNoAnythingLLM: "W\u0142\u0105cz AnythingLLM w ustawieniach pluginu.",
+    askHistoryHint: (url) => `Historia czat\xF3w i eksport \u2192 ${url}`,
+    askHistoryBtn: "Otw\xF3rz histori\u0119 czat\xF3w",
+    askVaultTitle: "Znalezione w vault (keyword search)",
+    askVaultDesc: "Zaznacz pliki, by do\u0142\u0105czy\u0107 ich tre\u015B\u0107 jako kontekst i zapyta\u0107 ponownie.",
+    askVaultEmpty: "Brak dodatkowych trafie\u0144 w vault.",
+    askReaskWithContext: "Zapytaj ponownie z kontekstem \u21BB",
+    askContextBadge: "\u2726 wzbogacone kontekstem z vault",
+    // Contradiction
+    contradictionWarning: "\u26A0 Sprzeczno\u015B\u0107 z istniej\u0105c\u0105 wiedz\u0105",
+    contradictionLabel: "Sprzeczno\u015B\u0107",
     // Errors
     searchErrorMsg: (msg) => `B\u0142\u0105d wyszukiwania: ${msg}`,
     detailErrorMsg: (msg) => `B\u0142\u0105d \u0142adowania szczeg\xF3\u0142\xF3w: ${msg}`,
@@ -296,6 +376,52 @@ var I18N = {
     profileAiLocalDesc: "Summaries and classification via local models (Ollama).",
     profileAiCloud: "AI \u2014 cloud",
     profileAiCloudDesc: "Summaries and classification via cloud API (OpenAI, Anthropic).",
+    wizStepHelp: "Help",
+    // Help / How-To
+    helpTitle: "How to use KMS",
+    helpIntro: "Quick reference guide \u2014 click a section to expand it.",
+    helpSections: [
+      {
+        icon: "\u{1F680}",
+        title: "Daily workflow",
+        items: [
+          { label: "1. Drop files into 00_Inbox/", desc: "PDFs, Markdown, chat exports" },
+          { label: '2. Ctrl+P \u2192 "KMS: Refresh review queue"', desc: "Scans inbox, creates proposals, generates dashboard" },
+          { label: "3. Open review-queue.md", desc: "Click Approve / Reject / Postpone for each proposal" },
+          { label: '4. Ctrl+P \u2192 "KMS: Apply decisions"', desc: "Moves approved files to target folders" }
+        ]
+      },
+      {
+        icon: "\u{1F50D}",
+        title: "Useful commands",
+        items: [
+          { label: "Search proposals", desc: "Search proposals by text, domain, topic" },
+          { label: "Retriage all", desc: "Re-classify domains/topics via LLM" },
+          { label: "Revert proposal", desc: "Undo a single applied proposal" },
+          { label: "Revert batch", desc: "Undo an entire bulk approval operation" },
+          { label: "Ask knowledge base", desc: "Ask AnythingLLM about your knowledge base" },
+          { label: "Run setup wizard", desc: "Re-run this wizard" }
+        ]
+      },
+      {
+        icon: "\u2699\uFE0F",
+        title: "Profiles",
+        items: [
+          { label: "Core", desc: "Basic pipeline without AI" },
+          { label: "AI \u2014 local", desc: "Summaries and classification via Ollama" },
+          { label: "AI \u2014 cloud", desc: "Summaries and classification via OpenAI / Anthropic" }
+        ]
+      }
+    ],
+    helpKeyboardTitle: "Keyboard shortcuts",
+    helpKeyboard: [
+      { key: "Ctrl+P", desc: 'Command palette \u2014 type "KMS" to see all commands' },
+      { key: "Ctrl+Shift+R", desc: "You can assign to Refresh review queue" },
+      { key: "Ctrl+Shift+A", desc: "You can assign to Apply decisions" }
+    ],
+    helpStructureTitle: "Vault structure",
+    helpStructureTree: "00_Admin/\n  review-queue.md    \u2190 proposals for review\n  dashboard.md       \u2190 stats\n00_Inbox/              \u2190 DROP FILES HERE\n10_Sources/\n  web/               \u2190 approved web notes\n  pdf/               \u2190 approved PDFs\n20_Source-Notes/       \u2190 generated source notes\n30_Permanent-Notes/    \u2190 your canonical knowledge base\n80_Archive/            \u2190 rejected files",
+    helpDocsHint: "Full documentation: docs/USAGE.md, docs/INSTALL.md, docs/gateway.md",
     back: "\u2190 Back",
     next: "Next \u2192",
     skip: "Skip",
@@ -310,6 +436,7 @@ var I18N = {
     applying: "Applying decisions",
     refreshingQueue: "Refreshing queue",
     retriaging: "Re-classifying proposals (LLM)",
+    bulkTitle: "Bulk operation",
     confirmTitle: "Confirm",
     confirmYes: "Yes, proceed",
     confirmNo: "Cancel",
@@ -317,6 +444,7 @@ var I18N = {
     bulkRejectQ: (n) => `Reject ${n} pending proposals?`,
     bulkDone: (n, d) => `${n} proposals set to ${d}.`,
     noPending: "No pending proposals to change.",
+    applyHint: "Run 'Apply decisions' to move files.",
     pipelineDone: "Done!",
     pipelineError: "Pipeline error:",
     copyError: "Copy error",
@@ -337,6 +465,10 @@ var I18N = {
     btnSearch: "Search proposals",
     btnRevertProposal: "Revert proposal",
     btnRevertBatch: "Revert batch",
+    btnSettings: "Settings",
+    btnHelp: "Help",
+    btnAskLlm: "Ask knowledge base",
+    tooltipAskLlm: "Ask AnythingLLM about your notes",
     loadingStats: "Loading stats...",
     statsError: "Stats error:",
     topDomains: "Top domains",
@@ -385,8 +517,12 @@ var I18N = {
     settingAnythingLLMHeader: "AnythingLLM",
     settingAnythingLLM: "Enable AnythingLLM",
     settingAnythingLLMDesc: "AnythingLLM integration for retrieval and Q&A",
+    settingAnythingLLMUrl: "AnythingLLM URL",
+    settingAnythingLLMUrlDesc: "AnythingLLM server address",
     settingSlug: "Workspace slug",
     settingSlugDesc: "AnythingLLM workspace name",
+    settingApiKey: "API Key",
+    settingApiKeyDesc: "AnythingLLM API key (find in AnythingLLM \u2192 Settings \u2192 API Keys)",
     settingHelp: "Help",
     settingHelpText: "Open <code>docs/workflow.md</code> for a full workflow description.",
     statTotal: "Total",
@@ -439,6 +575,29 @@ var I18N = {
     ariaPostpone: (id) => `Postpone proposal #${id}`,
     batchProposalCount: (n) => `${n} proposal${n !== 1 ? "s" : ""}`,
     batchCreatedLabel: (at) => `Created: ${at}`,
+    // Ask LLM
+    askTitle: "Ask your knowledge base",
+    askDesc: "Ask a question \u2014 AnythingLLM will search your notes and answer based on your knowledge base.",
+    askPlaceholder: "e.g. How does move semantics work in C++?",
+    askSend: "Ask",
+    askLoading: "Searching for an answer...",
+    askAnswer: "Answer",
+    askSources: "Sources",
+    askErrorTitle: "AnythingLLM Error",
+    askError: (msg) => `AnythingLLM error: ${msg}`,
+    askNoApiKey: "No API key set. Configure the API Key in plugin settings (AnythingLLM section).",
+    askNoAnythingLLM: "Enable AnythingLLM in plugin settings.",
+    askHistoryHint: (url) => `Chat history & export \u2192 ${url}`,
+    askHistoryBtn: "Open chat history",
+    askVaultTitle: "Found in vault (keyword search)",
+    askVaultDesc: "Select files to include their content as context and re-ask.",
+    askVaultEmpty: "No additional matches found in vault.",
+    askReaskWithContext: "Re-ask with context \u21BB",
+    askContextBadge: "\u2726 enriched with vault context",
+    // Contradiction
+    contradictionWarning: "\u26A0 Contradicts existing knowledge",
+    contradictionLabel: "Contradiction",
+    // Errors
     searchErrorMsg: (msg) => `Search error: ${msg}`,
     detailErrorMsg: (msg) => `Error loading detail: ${msg}`,
     reviewQueueNotFound: "review-queue.md not found.",
@@ -453,10 +612,58 @@ function _t(settings, key, ...args) {
 }
 
 // src/panel.js
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 
 // src/modals.js
 var import_obsidian = require("obsidian");
+var KmsNoticeModal = class extends import_obsidian.Modal {
+  /**
+   * @param {App} app
+   * @param {Plugin} plugin
+   * @param {string} title - Modal heading
+   * @param {string} message - Main message text
+   * @param {Object} [opts] - Optional: { detail, actions: [{label, cls, callback}] }
+   */
+  constructor(app, plugin, title, message, opts = {}) {
+    super(app);
+    this.plugin = plugin;
+    this._title = title;
+    this._message = message;
+    this._detail = opts.detail || "";
+    this._actions = opts.actions || [];
+  }
+  onOpen() {
+    const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    contentEl.addClass("kms-notice-modal");
+    contentEl.createEl("h3", { text: this._title });
+    contentEl.createEl("p", { cls: "kms-notice-message", text: this._message });
+    if (this._detail) {
+      const detailEl = contentEl.createEl("pre", { cls: "kms-notice-detail", text: this._detail });
+      const copyBtn = contentEl.createEl("button", { cls: "kms-notice-copy-btn", text: t("copyError") });
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(this._detail);
+        copyBtn.textContent = t("copied");
+        setTimeout(() => {
+          copyBtn.textContent = t("copyError");
+        }, 1500);
+      });
+    }
+    const btnRow = contentEl.createDiv({ cls: "kms-notice-actions" });
+    for (const action of this._actions) {
+      const btn = btnRow.createEl("button", { text: action.label, cls: action.cls || "" });
+      btn.addEventListener("click", () => {
+        this.close();
+        if (action.callback) action.callback();
+      });
+    }
+    const closeBtn = btnRow.createEl("button", { text: t("close"), cls: this._actions.length ? "" : "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
 var KmsSearchModal = class extends import_obsidian.Modal {
   constructor(app, plugin) {
     super(app);
@@ -653,8 +860,8 @@ var KmsDetailModal = class extends import_obsidian.Modal {
             }
           } catch (err) {
             revertBtn.textContent = t("revertFailed");
-            new import_obsidian.Notice(`${t("revertFailed")}: ${err.message}`, 1e4);
             revertBtn.disabled = false;
+            new KmsNoticeModal(this.app, this.plugin, t("revertFailed"), t("revertFailed"), { detail: err.message }).open();
           }
         });
       }
@@ -694,7 +901,8 @@ var KmsRevertModal = class extends import_obsidian.Modal {
     previewBtn.addEventListener("click", async () => {
       const pid = parseInt(input.value, 10);
       if (!pid) {
-        new import_obsidian.Notice(t("revertInvalidId"));
+        previewEl.empty();
+        previewEl.createEl("p", { cls: "kms-search-error", text: t("revertInvalidId") });
         return;
       }
       previewEl.empty();
@@ -743,8 +951,8 @@ var KmsRevertModal = class extends import_obsidian.Modal {
         }
       } catch (err) {
         revertBtn.textContent = t("revertFailed");
-        new import_obsidian.Notice(`${t("revertFailed")}: ${err.message}`, 1e4);
         revertBtn.disabled = false;
+        new KmsNoticeModal(this.app, this.plugin, t("revertFailed"), t("revertFailed"), { detail: err.message }).open();
       }
     });
     setTimeout(() => input.focus(), 50);
@@ -805,8 +1013,8 @@ var KmsBatchRevertModal = class extends import_obsidian.Modal {
             }
           } catch (err) {
             revertBtn.textContent = t("revertFailed");
-            new import_obsidian.Notice(`${t("batchRevertFailed")} ${err.message}`, 1e4);
             revertBtn.disabled = false;
+            new KmsNoticeModal(this.app, this.plugin, t("batchRevertFailed"), t("batchRevertFailed"), { detail: err.message }).open();
           }
         });
       }
@@ -850,6 +1058,350 @@ var KmsConfirmModal = class extends import_obsidian.Modal {
   onClose() {
     this.contentEl.empty();
     if (!this._resolved && this._callback) this._callback(false);
+  }
+};
+var KmsAskLlmModal = class extends import_obsidian.Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this._vaultResults = [];
+    this._lastQuestion = "";
+  }
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    modalEl.addClass("kms-ask-modal");
+    contentEl.createEl("h3", { text: t("askTitle") });
+    contentEl.createEl("p", { cls: "kms-ask-desc", text: t("askDesc") });
+    const input = contentEl.createEl("textarea", {
+      cls: "kms-ask-input",
+      attr: { rows: "3", placeholder: t("askPlaceholder") }
+    });
+    const btnRow = contentEl.createDiv({ cls: "kms-ask-actions" });
+    const askBtn = btnRow.createEl("button", { text: t("askSend"), cls: "mod-cta" });
+    const responseEl = contentEl.createDiv({ cls: "kms-ask-response" });
+    const vaultEl = contentEl.createDiv({ cls: "kms-ask-vault" });
+    const settings = this.plugin.settings;
+    const baseHost = (settings.anythingllmUrl || "http://localhost:3001").replace(/\/+$/, "");
+    const chatsUrl = `${baseHost}/settings/workspace-chats`;
+    const footer = contentEl.createDiv({ cls: "kms-ask-footer" });
+    const footerLink = footer.createEl("a", {
+      cls: "kms-ask-history-link",
+      text: t("askHistoryBtn"),
+      attr: { href: chatsUrl }
+    });
+    footerLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.open(chatsUrl, "_blank");
+    });
+    footer.createSpan({ cls: "kms-ask-footer-hint", text: ` \u2014 ${t("askHistoryHint", chatsUrl)}` });
+    const doAsk = async (withContext = false) => {
+      const question = input.value.trim();
+      if (!question) return;
+      this._lastQuestion = question;
+      askBtn.disabled = true;
+      askBtn.textContent = t("askLoading");
+      responseEl.empty();
+      responseEl.createEl("p", { cls: "kms-search-loading", text: t("askLoading") });
+      if (!withContext) vaultEl.empty();
+      try {
+        const s = this.plugin.settings;
+        const slug = s.anythingllmSlug || "my-workspace";
+        const baseUrl = (s.anythingllmUrl || "http://localhost:3001").replace(/\/+$/, "");
+        const apiKey = s.anythingllmApiKey || "";
+        if (!apiKey) {
+          responseEl.empty();
+          this.close();
+          new KmsNoticeModal(this.app, this.plugin, "AnythingLLM", t("askNoApiKey"), {
+            actions: [{ label: t("wizOpenSettings"), cls: "mod-cta", callback: () => {
+              this.app.setting.open();
+              this.app.setting.openTabById("kms-review");
+            } }]
+          }).open();
+          askBtn.disabled = false;
+          askBtn.textContent = t("askSend");
+          return;
+        }
+        let message = question;
+        let mode = "query";
+        if (withContext) {
+          const selected = this._getSelectedVaultFiles(vaultEl);
+          if (selected.length > 0) {
+            const ctx = selected.map(
+              (r) => `--- ${r.path} ---
+${r.content.substring(0, 1500)}`
+            ).join("\n\n");
+            message = `Kontekst z moich notatek:
+
+${ctx}
+
+---
+Pytanie: ${question}`;
+            mode = "chat";
+          }
+        }
+        const resp = await (0, import_obsidian.requestUrl)({
+          url: `${baseUrl}/api/v1/workspace/${slug}/chat`,
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message, mode, attachments: [] })
+        });
+        const data = resp.json;
+        responseEl.empty();
+        const text = data.textResponse || data.error || JSON.stringify(data);
+        const answer = responseEl.createDiv({ cls: "kms-ask-answer" });
+        answer.createEl("h4", { text: t("askAnswer") });
+        if (withContext) {
+          answer.createEl("span", { cls: "kms-ask-context-badge", text: t("askContextBadge") });
+        }
+        const answerBody = answer.createDiv({ cls: "kms-ask-answer-body" });
+        try {
+          await import_obsidian.MarkdownRenderer.render(this.app, text, answerBody, "", this);
+        } catch (_) {
+          for (const para of text.split("\n\n")) {
+            if (para.trim()) answerBody.createEl("p", { text: para.trim() });
+          }
+        }
+        const sources = data.sources || [];
+        if (sources.length > 0) {
+          const srcEl = responseEl.createDiv({ cls: "kms-ask-sources" });
+          srcEl.createEl("h4", { text: t("askSources") });
+          for (const src of sources) {
+            const title = src.title || src.name || src.location || "\u2014";
+            srcEl.createEl("p", { cls: "kms-ask-source-item", text: `\u2022 ${title}` });
+          }
+        }
+        if (!withContext) {
+          this._vaultResults = await this._searchVault(question);
+          this._renderVaultResults(vaultEl, t, () => doAsk(true));
+        }
+      } catch (err) {
+        responseEl.empty();
+        this.close();
+        new KmsNoticeModal(this.app, this.plugin, t("askErrorTitle"), t("askError", err.message), {
+          detail: err.message,
+          actions: [{ label: t("wizOpenSettings"), callback: () => {
+            this.app.setting.open();
+            this.app.setting.openTabById("kms-review");
+          } }]
+        }).open();
+      }
+      askBtn.disabled = false;
+      askBtn.textContent = t("askSend");
+    };
+    askBtn.addEventListener("click", () => doAsk(false));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) doAsk(false);
+    });
+    setTimeout(() => input.focus(), 50);
+  }
+  // ── Render vault keyword-search results with checkboxes ──
+  _renderVaultResults(container, t, reaskCallback) {
+    container.empty();
+    if (this._vaultResults.length === 0) {
+      container.createEl("p", { cls: "kms-ask-vault-empty", text: t("askVaultEmpty") });
+      return;
+    }
+    const header = container.createDiv({ cls: "kms-ask-vault-header" });
+    header.createEl("h4", { text: t("askVaultTitle") });
+    header.createEl("p", { cls: "kms-ask-vault-desc", text: t("askVaultDesc") });
+    const list = container.createDiv({ cls: "kms-ask-vault-list" });
+    for (const r of this._vaultResults) {
+      const item = list.createDiv({ cls: "kms-ask-vault-item" });
+      const row = item.createEl("label", { cls: "kms-ask-vault-label" });
+      row.createEl("input", { type: "checkbox", attr: { "data-path": r.path } });
+      row.createSpan({ cls: "kms-ask-vault-path", text: r.path });
+      row.createSpan({ cls: "kms-ask-vault-score", text: `${r.matched}/${r.total} terms \xB7 ${r.score} pts` });
+      if (r.snippet) {
+        item.createEl("p", { cls: "kms-ask-vault-snippet", text: r.snippet });
+      }
+    }
+    const reaskBtn = container.createEl("button", {
+      cls: "kms-ask-vault-reask",
+      text: t("askReaskWithContext")
+    });
+    reaskBtn.addEventListener("click", () => reaskCallback());
+  }
+  // ── Keyword search across vault markdown files ──
+  // Improved: stop words, prefix stemming, coverage-weighted scoring
+  async _searchVault(query) {
+    const files = this.app.vault.getMarkdownFiles();
+    const raw = query.toLowerCase().replace(/[^a-ząćęłńóśźż0-9\s]/gi, "").split(/\s+/);
+    const STOP = /* @__PURE__ */ new Set([
+      "i",
+      "w",
+      "z",
+      "na",
+      "do",
+      "to",
+      "co",
+      "jak",
+      "czy",
+      "\u017Ce",
+      "nie",
+      "si\u0119",
+      "jest",
+      "od",
+      "za",
+      "po",
+      "ale",
+      "lub",
+      "te",
+      "ten",
+      "ta",
+      "tym",
+      "tego",
+      "tej",
+      "o",
+      "a",
+      "ze",
+      "dla",
+      "przy",
+      "przez",
+      "bez",
+      "nad",
+      "pod",
+      "czego",
+      "czym",
+      "jaki",
+      "jaka",
+      "jakie",
+      "kt\xF3ry",
+      "kt\xF3ra",
+      "kt\xF3re",
+      "by\u0107",
+      "by\u0142",
+      "by\u0142a",
+      "by\u0142o",
+      "by\u0142y",
+      "b\u0119dzie",
+      "mie\u0107",
+      "mia\u0142",
+      "mia\u0142a",
+      "dotyczy\u0142a",
+      "dotyczy\u0142o",
+      "the",
+      "a",
+      "an",
+      "is",
+      "are",
+      "was",
+      "were",
+      "be",
+      "been",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "can",
+      "of",
+      "in",
+      "to",
+      "for",
+      "with",
+      "on",
+      "at",
+      "from",
+      "by",
+      "about",
+      "as",
+      "and",
+      "but",
+      "or",
+      "not",
+      "what",
+      "which",
+      "who",
+      "this",
+      "that",
+      "how",
+      "where",
+      "when",
+      "why",
+      "it",
+      "its",
+      "my",
+      "your",
+      "his",
+      "her"
+    ]);
+    const terms = raw.filter((w) => w.length >= 2 && !STOP.has(w));
+    if (terms.length === 0) return [];
+    const termSets = terms.map((t) => {
+      const stems = [t];
+      if (t.length > 3) stems.push(t.slice(0, -1));
+      if (t.length > 4) stems.push(t.slice(0, -2));
+      return { original: t, stems };
+    });
+    const searchFolders = /^(10_Sources|20_Source-Notes|30_Permanent-Notes)\//;
+    const scored = [];
+    for (const file of files) {
+      if (!searchFolders.test(file.path)) continue;
+      const content = await this.app.vault.cachedRead(file);
+      const lower = content.toLowerCase();
+      const nameLower = file.basename.toLowerCase().replace(/[-_]/g, " ");
+      let totalScore = 0;
+      let termsMatched = 0;
+      let bestMatchStem = null;
+      for (const { stems } of termSets) {
+        let best = 0;
+        for (const stem of stems) {
+          let count = 0;
+          let idx = 0;
+          while ((idx = lower.indexOf(stem, idx)) !== -1) {
+            count++;
+            idx += stem.length;
+          }
+          if (nameLower.includes(stem)) count += 5;
+          best = Math.max(best, count);
+        }
+        if (best > 0) {
+          termsMatched++;
+          totalScore += Math.min(best, 10);
+          if (!bestMatchStem) {
+            bestMatchStem = stems.find((s) => lower.includes(s));
+          }
+        }
+      }
+      if (totalScore > 0 && termsMatched > 0) {
+        const coverage = termsMatched / termSets.length;
+        const finalScore = Math.round(totalScore * (0.5 + coverage * 2));
+        const stem = bestMatchStem || terms[0];
+        const matchIdx = Math.max(0, lower.indexOf(stem));
+        const start = Math.max(0, matchIdx - 60);
+        const end = Math.min(content.length, matchIdx + 250);
+        const snippet = (start > 0 ? "\u2026" : "") + content.substring(start, end).replace(/\n+/g, " ").trim() + (end < content.length ? "\u2026" : "");
+        scored.push({
+          path: file.path,
+          score: finalScore,
+          matched: termsMatched,
+          total: termSets.length,
+          snippet,
+          content
+        });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 8);
+  }
+  // ── Get checked vault files from the UI ──
+  _getSelectedVaultFiles(container) {
+    const checked = container.querySelectorAll("input[type=checkbox]:checked");
+    const paths = new Set([...checked].map((cb) => cb.getAttribute("data-path")));
+    return this._vaultResults.filter((r) => paths.has(r.path));
+  }
+  onClose() {
+    this.contentEl.empty();
   }
 };
 var KmsProgressModal = class extends import_obsidian.Modal {
@@ -915,190 +1467,16 @@ var KmsProgressModal = class extends import_obsidian.Modal {
   }
 };
 
-// src/panel.js
-var KmsPanelView = class extends import_obsidian2.ItemView {
-  constructor(leaf, plugin) {
-    super(leaf);
-    this.plugin = plugin;
-  }
-  getViewType() {
-    return PANEL_VIEW_TYPE;
-  }
-  getDisplayText() {
-    return "KMS";
-  }
-  getIcon() {
-    return "layout-dashboard";
-  }
-  async onOpen() {
-    this.containerEl.empty();
-    const root = this.containerEl.createDiv({ cls: "kms-panel" });
-    this.panelRoot = root;
-    await this._render(root);
-  }
-  async refresh() {
-    if (!this.panelRoot) return;
-    this.panelRoot.empty();
-    await this._render(this.panelRoot);
-  }
-  async _render(root) {
-    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    root.createEl("h4", { cls: "kms-panel-title", text: t("panelTitle") });
-    const statsEl = root.createDiv({ cls: "kms-panel-stats" });
-    statsEl.createEl("p", { cls: "kms-search-loading", text: t("loadingStats") });
-    this._loadStats(statsEl);
-    const section = (title) => {
-      const s = root.createDiv({ cls: "kms-panel-section" });
-      s.createEl("div", { cls: "kms-panel-section-title", text: title });
-      return s;
-    };
-    const pipeSection = section(t("secPipeline"));
-    this._actionBtn(pipeSection, t("btnRefresh"), "rotate-cw", t("tooltipRefresh"), () => this.plugin._runPipeline("refresh"));
-    this._actionBtn(pipeSection, t("btnApply"), "check-circle", t("tooltipApply"), () => this.plugin._runPipeline("apply"));
-    if (this.plugin.settings.profile !== "core") {
-      this._actionBtn(pipeSection, t("btnRetriage"), "wand", t("tooltipRetriage"), () => this.plugin._runPipeline("retriage"));
-    }
-    const bulkSection = section(t("secBulk"));
-    this._actionBtn(bulkSection, t("btnApproveAll"), "check", "", () => this.plugin._bulkDecision("approve"));
-    this._actionBtn(bulkSection, t("btnRejectAll"), "x", "", () => this.plugin._bulkDecision("reject"));
-    const navSection = section(t("secNavigate"));
-    this._actionBtn(navSection, t("btnReviewQueue"), "file-text", "", () => this.plugin._openFile(REVIEW_QUEUE_FILENAME));
-    this._actionBtn(navSection, t("btnDashboard"), "bar-chart-2", "", () => this.plugin._openFile(DASHBOARD_FILENAME));
-    this._actionBtn(navSection, t("btnSearch"), "search", "", () => new KmsSearchModal(this.plugin.app, this.plugin).open());
-    const advSection = section(t("secAdvanced"));
-    this._actionBtn(advSection, t("btnRevertProposal"), "undo", t("tooltipRevert"), () => new KmsRevertModal(this.plugin.app, this.plugin).open());
-    this._actionBtn(advSection, t("btnRevertBatch"), "rotate-ccw", t("tooltipBatchRevert"), () => new KmsBatchRevertModal(this.plugin.app, this.plugin).open());
-  }
-  _actionBtn(parent, label, icon, tooltip, onClick) {
-    const btn = parent.createEl("button", { cls: "kms-panel-btn" });
-    const iconSpan = btn.createSpan({ cls: "kms-panel-btn-icon" });
-    try {
-      (0, import_obsidian2.setIcon)(iconSpan, icon);
-    } catch {
-    }
-    btn.createSpan({ text: label });
-    if (tooltip) btn.title = tooltip;
-    btn.addEventListener("click", onClick);
-    return btn;
-  }
-  async _loadStats(el) {
-    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    const python = this.plugin._getPython();
-    const projectRoot = this.plugin._getProjectRoot();
-    try {
-      const stdout = await this.plugin._exec(`"${python}" -m kms.scripts.proposal_detail`, projectRoot);
-      const all = JSON.parse(stdout);
-      el.empty();
-      const pending = all.filter((p) => p.decision === "pending").length;
-      const approve = all.filter((p) => p.decision === "approve").length;
-      const reject = all.filter((p) => p.decision === "reject").length;
-      const postpone = all.filter((p) => p.decision === "postpone").length;
-      const applied = all.filter((p) => p.is_applied).length;
-      const total = all.length;
-      const grid = el.createDiv({ cls: "kms-stats-grid" });
-      this._statCard(grid, String(total), t("statTotal"), "");
-      this._statCard(grid, String(pending), t("statPending"), "kms-stat-pending");
-      this._statCard(grid, String(approve), t("statApproved"), "kms-stat-approve");
-      this._statCard(grid, String(applied), t("statApplied"), "kms-stat-applied");
-      this._statCard(grid, String(reject), t("statRejected"), "kms-stat-reject");
-      this._statCard(grid, String(postpone), t("statPostpone"), "kms-stat-postpone");
-      const domains = {};
-      for (const p of all) {
-        const d = p.domain || "(none)";
-        domains[d] = (domains[d] || 0) + 1;
-      }
-      const sorted = Object.entries(domains).sort((a, b) => b[1] - a[1]).slice(0, 8);
-      if (sorted.length > 0 && !(sorted.length === 1 && sorted[0][0] === "(none)")) {
-        const domEl = el.createDiv({ cls: "kms-panel-domains" });
-        domEl.createEl("div", { cls: "kms-panel-section-title", text: t("topDomains") });
-        for (const [domain, count] of sorted) {
-          const row = domEl.createDiv({ cls: "kms-domain-row" });
-          row.createSpan({ cls: "kms-domain-name", text: domain });
-          const bar = row.createDiv({ cls: "kms-domain-bar-bg" });
-          const fill = bar.createDiv({ cls: "kms-domain-bar-fill" });
-          fill.style.width = `${Math.round(count / total * 100)}%`;
-          row.createSpan({ cls: "kms-domain-count", text: String(count) });
-        }
-      }
-    } catch (err) {
-      el.empty();
-      el.createEl("p", { cls: "kms-search-error", text: `${t("statsError")} ${err.message}` });
-    }
-  }
-  _statCard(parent, value, label, cls) {
-    const card = parent.createDiv({ cls: `kms-stat-card ${cls}` });
-    card.createDiv({ cls: "kms-stat-value", text: value });
-    card.createDiv({ cls: "kms-stat-label", text: label });
-  }
-  async onClose() {
-  }
-};
-
-// src/settings.js
-var import_obsidian3 = require("obsidian");
-var KmsSettingsTab = class extends import_obsidian3.PluginSettingTab {
-  constructor(app, plugin) {
-    super(app, plugin);
-    this.plugin = plugin;
-  }
-  display() {
-    const { containerEl } = this;
-    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
-    containerEl.empty();
-    containerEl.createEl("h2", { text: t("settingsTitle") });
-    new import_obsidian3.Setting(containerEl).setName(t("settingPython")).setDesc(t("settingPythonDesc")).addText(
-      (text) => text.setPlaceholder(".venv/bin/python").setValue(this.plugin.settings.pythonPath).onChange(async (value) => {
-        this.plugin.settings.pythonPath = value.trim();
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName(t("settingProject")).setDesc(t("settingProjectDesc")).addText(
-      (text) => text.setPlaceholder("auto-detect").setValue(this.plugin.settings.projectRoot).onChange(async (value) => {
-        this.plugin.settings.projectRoot = value.trim();
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName(t("settingLang")).setDesc(t("settingLangDesc")).addDropdown(
-      (dropdown) => dropdown.addOption("pl", "Polski").addOption("en", "English").setValue(this.plugin.settings.language).onChange(async (value) => {
-        this.plugin.settings.language = value;
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName(t("settingProfile")).setDesc(t("settingProfileDesc")).addDropdown(
-      (dropdown) => dropdown.addOption("core", t("profileCore")).addOption("ai-local", t("profileAiLocal")).addOption("ai-cloud", t("profileAiCloud")).setValue(this.plugin.settings.profile).onChange(async (value) => {
-        this.plugin.settings.profile = value;
-        await this.plugin.saveSettings();
-      })
-    );
-    containerEl.createEl("h3", { text: t("settingAnythingLLMHeader") });
-    new import_obsidian3.Setting(containerEl).setName(t("settingAnythingLLM")).setDesc(t("settingAnythingLLMDesc")).addToggle(
-      (toggle) => toggle.setValue(this.plugin.settings.anythingllmEnabled).onChange(async (value) => {
-        this.plugin.settings.anythingllmEnabled = value;
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName(t("settingSlug")).setDesc(t("settingSlugDesc")).addText(
-      (text) => text.setPlaceholder("my-workspace").setValue(this.plugin.settings.anythingllmSlug).onChange(async (value) => {
-        this.plugin.settings.anythingllmSlug = value.trim();
-        await this.plugin.saveSettings();
-      })
-    );
-    containerEl.createEl("h3", { text: t("settingHelp") });
-    const helpLink = containerEl.createEl("p");
-    helpLink.innerHTML = t("settingHelpText");
-  }
-};
-
 // src/wizard.js
-var import_obsidian4 = require("obsidian");
+var import_obsidian2 = require("obsidian");
 var path = require("path");
 var fs = require("fs");
-var KmsOnboardingWizard = class extends import_obsidian4.Modal {
+var KmsOnboardingWizard = class extends import_obsidian2.Modal {
   constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
     this.step = 0;
-    this.totalSteps = 5;
+    this.totalSteps = 6;
     this.checks = {};
     this.inboxCount = 0;
   }
@@ -1111,7 +1489,14 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     const { contentEl } = this;
     const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
     contentEl.empty();
-    const stepLabels = [t("wizStep1"), t("wizProfileTitle"), t("wizStep2"), t("wizStep3"), t("wizStep4")];
+    const stepLabels = [
+      t("wizStep1"),
+      t("wizProfileTitle"),
+      t("wizStep2"),
+      t("wizStep3"),
+      t("wizStep4"),
+      t("wizStepHelp")
+    ];
     const indicator = contentEl.createDiv({ cls: "kms-wizard-steps" });
     for (let i = 0; i < stepLabels.length; i++) {
       const dot = indicator.createSpan({
@@ -1127,6 +1512,7 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     else if (this.step === 2) this._stepEnvironment(body);
     else if (this.step === 3) this._stepInbox(body);
     else if (this.step === 4) this._stepFirstRun(body);
+    else if (this.step === 5) this._stepHelp(body);
   }
   // ── Step 0: Welcome ──
   _stepWelcome(body) {
@@ -1227,8 +1613,17 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     body.createEl("h3", { text: t("wizInboxTitle") });
     const inboxFolder = this.app.vault.getAbstractFileByPath("00_Inbox");
     let fileCount = 0;
-    if (inboxFolder && inboxFolder.children) {
-      fileCount = inboxFolder.children.filter((f) => !f.name.startsWith(".") && f.extension).length;
+    if (inboxFolder) {
+      const countRecursive = (folder) => {
+        if (!folder.children) return 0;
+        let n = 0;
+        for (const child of folder.children) {
+          if (child.children) n += countRecursive(child);
+          else if (!child.name.startsWith(".") && !child.name.startsWith("_") && child.extension) n++;
+        }
+        return n;
+      };
+      fileCount = countRecursive(inboxFolder);
     }
     this.inboxCount = fileCount;
     if (fileCount > 0) {
@@ -1243,11 +1638,14 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     }
     this._navButtons(body, {
       showBack: true,
-      nextLabel: fileCount > 0 ? t("runScan") : t("finish"),
+      nextLabel: fileCount > 0 ? t("runScan") : t("next"),
       nextAction: fileCount > 0 ? () => {
         this.step = 4;
         this._renderStep();
-      } : () => this._finish()
+      } : () => {
+        this.step = 5;
+        this._renderStep();
+      }
     });
   }
   // ── Step 4: First pipeline run ──
@@ -1296,17 +1694,6 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     }
     if (!failed) {
       footer.createEl("p", { cls: "kms-wizard-good", text: t("wizScanDone") });
-      const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
-      const openBtn = btnRow.createEl("button", { text: t("openReviewQueue"), cls: "mod-cta" });
-      openBtn.addEventListener("click", () => {
-        this._finish();
-        this.plugin._openFile(REVIEW_QUEUE_FILENAME);
-      });
-      const dashBtn = btnRow.createEl("button", { text: t("openDashboard") });
-      dashBtn.addEventListener("click", () => {
-        this._finish();
-        this.plugin._openFile(DASHBOARD_FILENAME);
-      });
     } else {
       const btnRow = footer.createDiv({ cls: "kms-wizard-actions" });
       const retryBtn = btnRow.createEl("button", { text: t("wizRetry"), cls: "mod-cta" });
@@ -1315,8 +1702,66 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
         this._renderStep();
       });
       const skipBtn = btnRow.createEl("button", { text: t("wizFinishAnyway") });
-      skipBtn.addEventListener("click", () => this._finish());
+      skipBtn.addEventListener("click", () => {
+        this.step = 5;
+        this._renderStep();
+      });
     }
+    if (!failed) {
+      this._navButtons(body, { showBack: false, nextLabel: t("next"), nextAction: () => {
+        this.step = 5;
+        this._renderStep();
+      } });
+    }
+  }
+  // ── Step 5: Help / How-To ──
+  _stepHelp(body) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    body.createEl("h3", { text: t("helpTitle") });
+    body.createEl("p", { text: t("helpIntro") });
+    const sections = t("helpSections");
+    for (const section of sections) {
+      const details = body.createEl("details", { cls: "kms-help-section" });
+      const summary = details.createEl("summary", { cls: "kms-help-summary" });
+      summary.createSpan({ cls: "kms-help-icon", text: section.icon });
+      summary.createSpan({ text: section.title });
+      const content = details.createDiv({ cls: "kms-help-content" });
+      for (const item of section.items) {
+        const row2 = content.createDiv({ cls: "kms-help-item" });
+        row2.createEl("strong", { text: item.label });
+        row2.createEl("span", { text: ` \u2014 ${item.desc}` });
+      }
+    }
+    const kbSection = body.createEl("details", { cls: "kms-help-section" });
+    const kbSummary = kbSection.createEl("summary", { cls: "kms-help-summary" });
+    kbSummary.createSpan({ cls: "kms-help-icon", text: "\u2328" });
+    kbSummary.createSpan({ text: t("helpKeyboardTitle") });
+    const kbContent = kbSection.createDiv({ cls: "kms-help-content" });
+    for (const kb of t("helpKeyboard")) {
+      const row2 = kbContent.createDiv({ cls: "kms-help-item" });
+      row2.createEl("kbd", { text: kb.key, cls: "kms-help-kbd" });
+      row2.createEl("span", { text: ` ${kb.desc}` });
+    }
+    const structSection = body.createEl("details", { cls: "kms-help-section" });
+    const structSummary = structSection.createEl("summary", { cls: "kms-help-summary" });
+    structSummary.createSpan({ cls: "kms-help-icon", text: "\u{1F4C1}" });
+    structSummary.createSpan({ text: t("helpStructureTitle") });
+    const structContent = structSection.createDiv({ cls: "kms-help-content" });
+    structContent.createEl("pre", { cls: "kms-help-tree", text: t("helpStructureTree") });
+    body.createEl("p", { cls: "kms-help-docs-hint", text: t("helpDocsHint") });
+    const row = body.createDiv({ cls: "kms-wizard-actions" });
+    const openRQ = row.createEl("button", { text: t("openReviewQueue"), cls: "mod-cta" });
+    openRQ.addEventListener("click", () => {
+      this._finish();
+      this.plugin._openFile(REVIEW_QUEUE_FILENAME);
+    });
+    const openDash = row.createEl("button", { text: t("openDashboard") });
+    openDash.addEventListener("click", () => {
+      this._finish();
+      this.plugin._openFile(DASHBOARD_FILENAME);
+    });
+    const finishBtn = row.createEl("button", { text: t("finish") });
+    finishBtn.addEventListener("click", () => this._finish());
   }
   // ── Helpers ──
   _checkItem(list, ok, label, detail) {
@@ -1357,6 +1802,260 @@ var KmsOnboardingWizard = class extends import_obsidian4.Modal {
     this.contentEl.empty();
   }
 };
+var KmsHelpModal = class extends import_obsidian2.Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    contentEl.addClass("kms-wizard-modal");
+    contentEl.createEl("h2", { text: t("helpTitle") });
+    contentEl.createEl("p", { text: t("helpIntro") });
+    const sections = t("helpSections");
+    for (const section of sections) {
+      const details = contentEl.createEl("details", { cls: "kms-help-section" });
+      const summary = details.createEl("summary", { cls: "kms-help-summary" });
+      summary.createSpan({ cls: "kms-help-icon", text: section.icon });
+      summary.createSpan({ text: section.title });
+      const content = details.createDiv({ cls: "kms-help-content" });
+      for (const item of section.items) {
+        const row = content.createDiv({ cls: "kms-help-item" });
+        row.createEl("strong", { text: item.label });
+        row.createEl("span", { text: ` \u2014 ${item.desc}` });
+      }
+    }
+    const kbSection = contentEl.createEl("details", { cls: "kms-help-section" });
+    const kbSummary = kbSection.createEl("summary", { cls: "kms-help-summary" });
+    kbSummary.createSpan({ cls: "kms-help-icon", text: "\u2328" });
+    kbSummary.createSpan({ text: t("helpKeyboardTitle") });
+    const kbContent = kbSection.createDiv({ cls: "kms-help-content" });
+    for (const kb of t("helpKeyboard")) {
+      const row = kbContent.createDiv({ cls: "kms-help-item" });
+      row.createEl("kbd", { text: kb.key, cls: "kms-help-kbd" });
+      row.createEl("span", { text: ` ${kb.desc}` });
+    }
+    const structSection = contentEl.createEl("details", { cls: "kms-help-section" });
+    const structSummary = structSection.createEl("summary", { cls: "kms-help-summary" });
+    structSummary.createSpan({ cls: "kms-help-icon", text: "\u{1F4C1}" });
+    structSummary.createSpan({ text: t("helpStructureTitle") });
+    const structContent = structSection.createDiv({ cls: "kms-help-content" });
+    structContent.createEl("pre", { cls: "kms-help-tree", text: t("helpStructureTree") });
+    contentEl.createEl("p", { cls: "kms-help-docs-hint", text: t("helpDocsHint") });
+    const closeRow = contentEl.createDiv({ cls: "kms-wizard-actions" });
+    const closeBtn = closeRow.createEl("button", { text: t("close"), cls: "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+
+// src/panel.js
+var KmsPanelView = class extends import_obsidian3.ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+  }
+  getViewType() {
+    return PANEL_VIEW_TYPE;
+  }
+  getDisplayText() {
+    return "KMS";
+  }
+  getIcon() {
+    return "layout-dashboard";
+  }
+  async onOpen() {
+    this.containerEl.empty();
+    const root = this.containerEl.createDiv({ cls: "kms-panel" });
+    this.panelRoot = root;
+    await this._render(root);
+  }
+  async refresh() {
+    if (!this.panelRoot) return;
+    this.panelRoot.empty();
+    await this._render(this.panelRoot);
+  }
+  async _render(root) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    root.createEl("h4", { cls: "kms-panel-title", text: t("panelTitle") });
+    const statsEl = root.createDiv({ cls: "kms-panel-stats" });
+    statsEl.createEl("p", { cls: "kms-search-loading", text: t("loadingStats") });
+    this._loadStats(statsEl);
+    const section = (title) => {
+      const s = root.createDiv({ cls: "kms-panel-section" });
+      s.createEl("div", { cls: "kms-panel-section-title", text: title });
+      return s;
+    };
+    const pipeSection = section(t("secPipeline"));
+    this._actionBtn(pipeSection, t("btnRefresh"), "rotate-cw", t("tooltipRefresh"), () => this.plugin._runPipeline("refresh"));
+    this._actionBtn(pipeSection, t("btnApply"), "check-circle", t("tooltipApply"), () => this.plugin._runPipeline("apply"));
+    if (this.plugin.settings.profile !== "core") {
+      this._actionBtn(pipeSection, t("btnRetriage"), "wand", t("tooltipRetriage"), () => this.plugin._runPipeline("retriage"));
+    }
+    const bulkSection = section(t("secBulk"));
+    this._actionBtn(bulkSection, t("btnApproveAll"), "check", "", () => this.plugin._bulkDecision("approve"));
+    this._actionBtn(bulkSection, t("btnRejectAll"), "x", "", () => this.plugin._bulkDecision("reject"));
+    const navSection = section(t("secNavigate"));
+    this._actionBtn(navSection, t("btnReviewQueue"), "file-text", "", () => this.plugin._openFile(REVIEW_QUEUE_FILENAME));
+    this._actionBtn(navSection, t("btnDashboard"), "bar-chart-2", "", () => this.plugin._openFile(DASHBOARD_FILENAME));
+    this._actionBtn(navSection, t("btnSearch"), "search", "", () => new KmsSearchModal(this.plugin.app, this.plugin).open());
+    if (this.plugin.settings.anythingllmEnabled) {
+      this._actionBtn(navSection, t("btnAskLlm"), "message-circle", t("tooltipAskLlm"), () => {
+        if (!this.plugin.settings.anythingllmApiKey) {
+          new KmsNoticeModal(this.plugin.app, this.plugin, "AnythingLLM", t("askNoApiKey"), {
+            actions: [{ label: t("wizOpenSettings"), cls: "mod-cta", callback: () => {
+              this.plugin.app.setting.open();
+              this.plugin.app.setting.openTabById("kms-review");
+            } }]
+          }).open();
+          return;
+        }
+        new KmsAskLlmModal(this.plugin.app, this.plugin).open();
+      });
+    }
+    const advSection = section(t("secAdvanced"));
+    this._actionBtn(advSection, t("btnRevertProposal"), "undo", t("tooltipRevert"), () => new KmsRevertModal(this.plugin.app, this.plugin).open());
+    this._actionBtn(advSection, t("btnRevertBatch"), "rotate-ccw", t("tooltipBatchRevert"), () => new KmsBatchRevertModal(this.plugin.app, this.plugin).open());
+    this._actionBtn(advSection, t("btnSettings"), "settings", "", () => {
+      this.plugin.app.setting.open();
+      this.plugin.app.setting.openTabById("kms-review");
+    });
+    this._actionBtn(advSection, t("btnHelp"), "help-circle", "", () => new KmsHelpModal(this.plugin.app, this.plugin).open());
+  }
+  _actionBtn(parent, label, icon, tooltip, onClick) {
+    const btn = parent.createEl("button", { cls: "kms-panel-btn" });
+    const iconSpan = btn.createSpan({ cls: "kms-panel-btn-icon" });
+    try {
+      (0, import_obsidian3.setIcon)(iconSpan, icon);
+    } catch {
+    }
+    btn.createSpan({ text: label });
+    if (tooltip) btn.title = tooltip;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+  async _loadStats(el) {
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    const python = this.plugin._getPython();
+    const projectRoot = this.plugin._getProjectRoot();
+    try {
+      const stdout = await this.plugin._exec(`"${python}" -m kms.scripts.proposal_detail`, projectRoot);
+      const all = JSON.parse(stdout);
+      el.empty();
+      const pending = all.filter((p) => p.decision === "pending").length;
+      const approve = all.filter((p) => p.decision === "approve").length;
+      const reject = all.filter((p) => p.decision === "reject").length;
+      const postpone = all.filter((p) => p.decision === "postpone").length;
+      const applied = all.filter((p) => p.is_applied).length;
+      const total = all.length;
+      const grid = el.createDiv({ cls: "kms-stats-grid" });
+      this._statCard(grid, String(total), t("statTotal"), "");
+      this._statCard(grid, String(pending), t("statPending"), "kms-stat-pending");
+      this._statCard(grid, String(approve), t("statApproved"), "kms-stat-approve");
+      this._statCard(grid, String(applied), t("statApplied"), "kms-stat-applied");
+      this._statCard(grid, String(reject), t("statRejected"), "kms-stat-reject");
+      this._statCard(grid, String(postpone), t("statPostpone"), "kms-stat-postpone");
+      const domains = {};
+      for (const p of all) {
+        const d = p.domain || "(none)";
+        domains[d] = (domains[d] || 0) + 1;
+      }
+      const sorted = Object.entries(domains).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      if (sorted.length > 0 && !(sorted.length === 1 && sorted[0][0] === "(none)")) {
+        const domEl = el.createDiv({ cls: "kms-panel-domains" });
+        domEl.createEl("div", { cls: "kms-panel-section-title", text: t("topDomains") });
+        for (const [domain, count] of sorted) {
+          const row = domEl.createDiv({ cls: "kms-domain-row" });
+          row.createSpan({ cls: "kms-domain-name", text: domain });
+          const bar = row.createDiv({ cls: "kms-domain-bar-bg" });
+          const fill = bar.createDiv({ cls: "kms-domain-bar-fill" });
+          fill.style.width = `${Math.round(count / total * 100)}%`;
+          row.createSpan({ cls: "kms-domain-count", text: String(count) });
+        }
+      }
+    } catch (err) {
+      el.empty();
+      el.createEl("p", { cls: "kms-search-error", text: `${t("statsError")} ${err.message}` });
+    }
+  }
+  _statCard(parent, value, label, cls) {
+    const card = parent.createDiv({ cls: `kms-stat-card ${cls}` });
+    card.createDiv({ cls: "kms-stat-value", text: value });
+    card.createDiv({ cls: "kms-stat-label", text: label });
+  }
+  async onClose() {
+  }
+};
+
+// src/settings.js
+var import_obsidian4 = require("obsidian");
+var KmsSettingsTab = class extends import_obsidian4.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    const t = (k, ...a) => _t(this.plugin.settings, k, ...a);
+    containerEl.empty();
+    containerEl.createEl("h2", { text: t("settingsTitle") });
+    new import_obsidian4.Setting(containerEl).setName(t("settingPython")).setDesc(t("settingPythonDesc")).addText(
+      (text) => text.setPlaceholder(".venv/bin/python").setValue(this.plugin.settings.pythonPath).onChange(async (value) => {
+        this.plugin.settings.pythonPath = value.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingProject")).setDesc(t("settingProjectDesc")).addText(
+      (text) => text.setPlaceholder("auto-detect").setValue(this.plugin.settings.projectRoot).onChange(async (value) => {
+        this.plugin.settings.projectRoot = value.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingLang")).setDesc(t("settingLangDesc")).addDropdown(
+      (dropdown) => dropdown.addOption("pl", "Polski").addOption("en", "English").setValue(this.plugin.settings.language).onChange(async (value) => {
+        this.plugin.settings.language = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingProfile")).setDesc(t("settingProfileDesc")).addDropdown(
+      (dropdown) => dropdown.addOption("core", t("profileCore")).addOption("ai-local", t("profileAiLocal")).addOption("ai-cloud", t("profileAiCloud")).setValue(this.plugin.settings.profile).onChange(async (value) => {
+        this.plugin.settings.profile = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: t("settingAnythingLLMHeader") });
+    new import_obsidian4.Setting(containerEl).setName(t("settingAnythingLLM")).setDesc(t("settingAnythingLLMDesc")).addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.anythingllmEnabled).onChange(async (value) => {
+        this.plugin.settings.anythingllmEnabled = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingAnythingLLMUrl")).setDesc(t("settingAnythingLLMUrlDesc")).addText(
+      (text) => text.setPlaceholder("http://localhost:3001").setValue(this.plugin.settings.anythingllmUrl).onChange(async (value) => {
+        this.plugin.settings.anythingllmUrl = value.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingSlug")).setDesc(t("settingSlugDesc")).addText(
+      (text) => text.setPlaceholder("my-workspace").setValue(this.plugin.settings.anythingllmSlug).onChange(async (value) => {
+        this.plugin.settings.anythingllmSlug = value.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian4.Setting(containerEl).setName(t("settingApiKey")).setDesc(t("settingApiKeyDesc")).addText(
+      (text) => text.setPlaceholder("AK-xxxxxxxx").setValue(this.plugin.settings.anythingllmApiKey).onChange(async (value) => {
+        this.plugin.settings.anythingllmApiKey = value.trim();
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: t("settingHelp") });
+    const helpLink = containerEl.createEl("p");
+    helpLink.innerHTML = t("settingHelpText");
+  }
+};
 
 // src/main.js
 var { exec } = require("child_process");
@@ -1381,6 +2080,23 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
     this.addCommand({ id: "revert-proposal", name: "Revert applied proposal (enter proposal ID)", callback: () => new KmsRevertModal(this.app, this).open() });
     this.addCommand({ id: "revert-batch", name: "Revert batch (undo entire bulk operation)", callback: () => new KmsBatchRevertModal(this.app, this).open() });
     this.addCommand({ id: "run-wizard", name: "Run setup wizard", callback: () => new KmsOnboardingWizard(this.app, this).open() });
+    this.addCommand({ id: "ask-llm", name: "Ask knowledge base (AnythingLLM)", callback: () => {
+      if (!this.settings.anythingllmEnabled) {
+        new KmsNoticeModal(
+          this.app,
+          this,
+          "AnythingLLM",
+          _t(this.settings, "askNoAnythingLLM"),
+          { actions: [{ label: _t(this.settings, "wizOpenSettings"), cls: "mod-cta", callback: () => {
+            this.app.setting.open();
+            this.app.setting.openTabById("kms-review");
+          } }] }
+        ).open();
+        return;
+      }
+      new KmsAskLlmModal(this.app, this).open();
+    } });
+    this.addCommand({ id: "show-help", name: "Help & how-to", callback: () => new KmsHelpModal(this.app, this).open() });
     this.addRibbonIcon("layout-dashboard", "KMS Control Panel", () => this._activatePanel());
     if (!this.settings.onboardingDone) {
       this.app.workspace.onLayoutReady(() => new KmsOnboardingWizard(this.app, this).open());
@@ -1424,10 +2140,11 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
     const projectRoot = this._getProjectRoot();
     const python = this._getPython();
     const t = (k, ...a) => _t(this.settings, k, ...a);
+    const aiFlag = this.settings.profile !== "core" ? " --ai-summary" : "";
     const pipelines = {
       refresh: [
         { cmd: `"${python}" -m kms.scripts.scan_inbox`, label: t("scanning") },
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --ai-summary`, label: t("generating") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue${aiFlag}`, label: t("generating") },
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") }
       ],
       apply: [
@@ -1436,7 +2153,7 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") }
       ],
       retriage: [
-        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage --ai-summary`, label: t("retriaging") },
+        { cmd: `"${python}" -m kms.scripts.make_review_queue --retriage${aiFlag}`, label: t("retriaging") },
         { cmd: `"${python}" -m kms.scripts.generate_dashboard`, label: t("updatingDash") }
       ]
     };
@@ -1508,13 +2225,18 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
     if (file) {
       await this.app.workspace.openLinkText(file.path, "", false);
     } else {
-      new import_obsidian5.Notice(_t(this.settings, "fileNotFound", filePath));
+      const t = (k, ...a) => _t(this.settings, k, ...a);
+      new KmsNoticeModal(this.app, this, t("pipelineError"), t("fileNotFound", filePath), {
+        actions: [{ label: t("btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }]
+      }).open();
     }
   }
   async _scrollToProposal(proposalId) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
     if (!file) {
-      new import_obsidian5.Notice(_t(this.settings, "reviewQueueNotFound"));
+      new KmsNoticeModal(this.app, this, _t(this.settings, "pipelineError"), _t(this.settings, "reviewQueueNotFound"), {
+        actions: [{ label: _t(this.settings, "btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }]
+      }).open();
       return;
     }
     const leaf = await this.app.workspace.getLeaf(false);
@@ -1549,8 +2271,11 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
   // ── Bulk operations ──
   async _bulkDecision(decision) {
     const file = this.app.vault.getAbstractFileByPath(REVIEW_QUEUE_FILENAME);
+    const t = (k, ...a) => _t(this.settings, k, ...a);
     if (!file) {
-      new import_obsidian5.Notice(_t(this.settings, "reviewQueueNotFound"));
+      new KmsNoticeModal(this.app, this, t("pipelineError"), t("reviewQueueNotFound"), {
+        actions: [{ label: t("btnRefresh"), cls: "mod-cta", callback: () => this._runPipeline("refresh") }]
+      }).open();
       return;
     }
     let content = await this.app.vault.read(file);
@@ -1561,9 +2286,8 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
       const m = block.text.match(/decision:\s*(\S+)/);
       if (m && m[1] === "pending") count++;
     }
-    const t = (k, ...a) => _t(this.settings, k, ...a);
     if (count === 0) {
-      new import_obsidian5.Notice(t("noPending"));
+      new KmsNoticeModal(this.app, this, t("bulkTitle"), t("noPending")).open();
       return;
     }
     const qKey = decision === "approve" ? "bulkApproveQ" : "bulkRejectQ";
@@ -1585,7 +2309,9 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
       }
     }
     await this.app.vault.modify(file, freshBlocks.map((b) => b.text).join(""));
-    new import_obsidian5.Notice(t("bulkDone", applied, decision));
+    new KmsNoticeModal(this.app, this, t("bulkTitle"), t("bulkDone", applied, decision), {
+      actions: [{ label: t("btnApply"), cls: "mod-cta", callback: () => this._runPipeline("apply") }]
+    }).open();
     this._reloadKmsViews();
     this._refreshPanel();
   }
@@ -1621,7 +2347,7 @@ var KmsReviewPlugin = class extends import_obsidian5.Plugin {
         container.className = `kms-review-block kms-decision-${d.value}`;
         header.querySelector(".kms-review-badge").textContent = d.value.toUpperCase();
         await this._updateField(ctx.sourcePath, parsed.proposal_id, "decision", d.value);
-        new import_obsidian5.Notice(_t(this.settings, "proposalDecision", parsed.proposal_id, d.value));
+        new import_obsidian5.Notice(`${_t(this.settings, "proposalDecision", parsed.proposal_id, d.value)} \u2014 ${_t(this.settings, "applyHint")}`, 6e3);
       });
     }
     const noteInput = container.createEl("input", {
