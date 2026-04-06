@@ -18,6 +18,8 @@
 !10_Sources/web/
 !10_Sources/pdf/.gitkeep
 !10_Sources/web/.gitkeep
+# Fixture dla testów CI (konwersja PDF / ingest); mały, deterministyczny plik.
+!10_Sources/pdf/minimal-demo.pdf
 
 20_Source-Notes/**
 !20_Source-Notes/
@@ -26,6 +28,10 @@
 30_Permanent-Notes/**
 !30_Permanent-Notes/
 !30_Permanent-Notes/.gitkeep
+# Fixture dla testów merge_advisor (dopasowanie leksykalne „RAII”).
+!30_Permanent-Notes/cpp/
+!30_Permanent-Notes/cpp/memory/
+!30_Permanent-Notes/cpp/memory/raii.md
 
 40_Projects/**
 !40_Projects/
