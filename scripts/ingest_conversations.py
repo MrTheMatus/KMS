@@ -30,10 +30,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from kms.app.config import abs_path, load_config
-from kms.app.db import audit, connect, ensure_schema
-from kms.app.pdf_converter import ConverterPick, convert_pdf_to_markdown
-from kms.app.paths import project_root
+from kms.app.config import abs_path, load_config  # noqa: E402
+from kms.app.db import audit, connect, ensure_schema  # noqa: E402
+from kms.app.pdf_converter import ConverterPick, convert_pdf_to_markdown  # noqa: E402
+from kms.app.paths import project_root  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 _LOG = logging.getLogger(__name__)
@@ -88,16 +88,18 @@ def _wrap_source_note(
     source_file: str,
     topics: list[str],
 ) -> str:
-    j = lambda x: json.dumps(x, ensure_ascii=False)
+    def _j(x: object) -> str:
+        return json.dumps(x, ensure_ascii=False)
+
     lines = [
         "---",
-        f"id: {j(note_id)}",
+        f"id: {_j(note_id)}",
         "type: source-note",
         'source_type: "conversation"',
-        f"title: {j(title)}",
+        f"title: {_j(title)}",
         "source_url: null",
         "file_link: null",
-        f"captured_from_pdf: {j(source_file)}",
+        f"captured_from_pdf: {_j(source_file)}",
         'language: "pl"',
         f"topics: {json.dumps(topics, ensure_ascii=False)}",
         "status: inbox",

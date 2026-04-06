@@ -17,13 +17,11 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
 from kms.app.anythingllm_client import AnythingLLMClient
-from kms.app.config import abs_path, load_config, vault_paths
-from kms.app.paths import project_root
+from kms.app.config import load_config, vault_paths
 
 _LOG = logging.getLogger(__name__)
 
